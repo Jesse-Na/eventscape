@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: eventscape-app-deploy
+spec:
+    replicas: 2
+    strategy:
+        type: RollingUpdate
+        rollingUpdate:
+            maxUnavailable: 1
+            maxSurge: 1
+    selector:
+        matchLabels:
+            app: eventscape-app
+    template:
+        metadata:
+            labels:
+                app: eventscape-app
+        spec:
+            containers:
+                - name: eventscape-app
+                  image: eventscape-app:1.0
+                  imagePullPolicy: Never
+                  ports:
+                      - containerPort: 3000
+                  readinessProbe:
+                      httpGet:
+                          path: /status
+                          port: 3000
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
