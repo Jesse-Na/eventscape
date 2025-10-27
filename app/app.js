@@ -1,4 +1,5 @@
 const express = require("express");
+const { Pool } = require("pg");
 const app = express();
 
 // Middleware to parse JSON bodies
@@ -10,6 +11,39 @@ const authMiddleware = (req, res, next) => {
 
 // Apply authentication middleware to all routes
 app.use(authMiddleware);
+
+const pool = new Pool({
+	host: process.env.POSTGRES_SERVICE_HOST,
+	port: process.env.POSTGRES_SERVICE_PORT,
+	user: "postgres",
+	password: "SecurePassword",
+	database: "postgres",
+});
+
+app.get("/test", (req, res) => {
+	pool.query("SELECT * FROM test;", (err, result) => {
+		if (err) {
+			console.error("Error executing query:", err);
+			res.status(500).json({ error: "Database query failed" });
+		} else {
+			res.status(200).json(result.rows);
+		}
+	});
+});
+
+app.get("/insert", (req, res) => {
+	pool.query(
+		"INSERT INTO test (name, sold) VALUES ('Sample Name', 100) RETURNING *;",
+		(err, result) => {
+			if (err) {
+				console.error("Error executing insert:", err);
+				res.status(500).json({ error: "Database insert failed" });
+			} else {
+				res.status(200).json(result.rows[0]);
+			}
+		}
+	);
+});
 
 // GET /status: Whether server is up or not
 app.get("/status", (req, res) => {

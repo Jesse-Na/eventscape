@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: eventscape-app-deploy
+    name: node-app
 spec:
     replicas: 2
     strategy:
@@ -11,11 +11,11 @@ spec:
             maxSurge: 1
     selector:
         matchLabels:
-            app: eventscape-app
+            app: node-app
     template:
         metadata:
             labels:
-                app: eventscape-app
+                app: node-app
         spec:
             containers:
                 - name: eventscape-app
