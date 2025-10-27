@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+    - ../../base
+
+patchesStrategicMerge:
+    - db-pv.yaml
+    - db-pvc.yaml
+    - db-deployment.yaml
+    - app-deployment.yaml
+    - app-service.yaml

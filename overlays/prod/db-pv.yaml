@@ -4,9 +4,3 @@ metadata:
     name: postgres-pv
 spec:
     storageClassName: do-block-storage
-    capacity:
-        storage: 1Gi
-    accessModes:
-        - ReadWriteOnce
-    hostPath:
-        path: "/data/db"
