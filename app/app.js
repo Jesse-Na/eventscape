@@ -20,7 +20,7 @@ const pool = new Pool({
 	database: "postgres",
 });
 
-app.get("/", (req, res) => {
+app.get("/test", (req, res) => {
 	pool.query("SELECT * FROM test;", (err, result) => {
 		if (err) {
 			console.error("Error executing query:", err);
@@ -29,6 +29,20 @@ app.get("/", (req, res) => {
 			res.status(200).json(result.rows);
 		}
 	});
+});
+
+app.get("/insert", (req, res) => {
+	pool.query(
+		"INSERT INTO test (name, sold) VALUES ('Sample Name', 100) RETURNING *;",
+		(err, result) => {
+			if (err) {
+				console.error("Error executing insert:", err);
+				res.status(500).json({ error: "Database insert failed" });
+			} else {
+				res.status(200).json(result.rows[0]);
+			}
+		}
+	);
 });
 
 // GET /status: Whether server is up or not
