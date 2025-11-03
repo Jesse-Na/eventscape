@@ -3,7 +3,9 @@ const express = require("express");
 const { Pool } = require("pg");
 
 const app = express();
+const path = require("path");
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "frontend")));
 
 // --- Auth stub (double check) ---
 const authMiddleware = (_req, _res, next) => next();
@@ -23,6 +25,10 @@ const VISIBILITY = new Set(["public", "private", "unlisted"]);
 const RSVP_STATUS = new Set(["going", "waitlisted", "interested", "cancelled"]);
 const isUUID = (s) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
+
+app.get("/", (_req, res) =>
+  res.sendFile(path.join(__dirname, "frontend/main.html"))
+);
 
 // --- Health/DB utilities ---
 app.get("/status", (_req, res) => res.status(200).json({ status: "UP" }));
