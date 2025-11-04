@@ -1,29 +1,59 @@
 // app.js
 const express = require("express");
-const { Pool } = require("pg");
-
-const app = express();
+const pool = require("./db");
+const localStrategy = require("./auth.js");
+const passport = require("passport");
+const bcrypt = require("bcrypt");
 const path = require("path");
 const ejs = require("ejs");
-app.use(express.json());
+const session = require("express-session");
+const cookieParser = require("cookie-parser");
+const bodyParser = require("body-parser");
 
-app.use(express.static(path.join(__dirname, "frontend")));
-app.set("views", path.join(__dirname, "frontend"));
+const app = express();
+
+app.use(
+	session({
+		secret: "GFGLogin346",
+		resave: false,
+		saveUninitialized: false,
+	})
+);
+
+app.use(cookieParser());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(express.static(path.join(__dirname, "views")));
+app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 app.engine("html", ejs.renderFile);
+
+passport.serializeUser((user, done) =>
+	done(null, {
+		id: user.user_id,
+		email: user.email,
+	})
+);
+passport.deserializeUser(async ({ id }, done) => {
+	// Fetch user from db
+	try {
+		const { rows } = await pool.query(
+			`select user_id, email from users where user_id = $1`,
+			[id]
+		);
+
+		return done(null, rows[0]);
+	} catch (error) {
+		console.error("Error in deserializeUser:", error);
+		return done(error);
+	}
+});
 
 // --- Auth stub (double check) ---
 const authMiddleware = (_req, _res, next) => next();
 app.use(authMiddleware);
-
-// --- Updated from before ---
-const pool = new Pool({
-	host: process.env.POSTGRES_SERVICE_HOST || "db",
-	port: process.env.POSTGRES_SERVICE_PORT || 5432,
-	user: "postgres",
-	password: "SecurePassword",
-	database: "postgres",
-});
 
 // --- Helpers ---
 const VISIBILITY = new Set(["public", "private", "unlisted"]);
@@ -33,20 +63,82 @@ const isUUID = (s) =>
 		s
 	);
 
-app.get("/", (_req, res) => {
-	res.render("main");
+app.get("/", (req, res) => {
+	if (req.session.userId) {
+		const email = req.session.email;
+		res.render("main", { email: email });
+	}
+	return res.render("main", { email: null });
 });
 
-app.get("/main", (_req, res) => {
-	res.render("main");
+app.get("/main", (req, res) => {
+	res.redirect("/");
 });
 
-app.get("/login", (_req, res) => {
-	res.render("login");
+app.get("/login", (req, res) => {
+	if (req.session.userId) {
+		res.redirect("/");
+	}
+	res.render("login", { error: null });
 });
 
-app.get("/register", (_req, res) => {
-	res.render("register");
+app.post(
+	"/login",
+	passport.authenticate("local", { session: false }),
+	(req, res) => {
+		// Passport returns user object in body
+		req.session.userId = req.body.user_id;
+		req.session.email = req.body.email;
+		req.session.save();
+
+		return res.redirect("/");
+	}
+);
+
+app.get("/register", (req, res) => {
+	if (req.session.userId) {
+		res.redirect("/");
+	}
+	res.render("register", { error: null });
+});
+
+app.post("/register", async (req, res) => {
+	console.log(req.body);
+	const { email, password } = req.body;
+	if (!email && !password) {
+		return res.status(400).render("register", { error: "Missing fields" });
+	}
+	try {
+		// Check if user already exists
+		const { rows } = await pool.query(
+			`select * from users where email = $1`,
+			[email]
+		);
+
+		if (rows.length > 0) {
+			return res.status(409).render("register", {
+				error: "User with that email already exists",
+			});
+		}
+
+		// Hash the password before saving it to the database
+		const salt = await bcrypt.genSalt(15);
+		const hashedPassword = await bcrypt.hash(password, salt);
+
+		// Create and save the new user
+		const insertResult = await pool.query(
+			`INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING user_id`,
+			[email, hashedPassword]
+		);
+
+		// req.session.userId = insertResult.rows[0].user_id;
+		// req.session.email = email;
+		// req.session.save();
+
+		return res.redirect("/login");
+	} catch (err) {
+		return res.status(500).json({ message: err.message });
+	}
 });
 
 app.get("/post-register", (_req, res) => {
@@ -146,11 +238,9 @@ app.post("/events", async (req, res) => {
 		} = req.body || {};
 
 		if (!isUUID(host_id) || !title || !start_time) {
-			return res
-				.status(400)
-				.json({
-					error: "host_id (uuid), title, start_time are required",
-				});
+			return res.status(400).json({
+				error: "host_id (uuid), title, start_time are required",
+			});
 		}
 		if (!VISIBILITY.has(visibility)) {
 			return res
@@ -251,11 +341,9 @@ app.post("/events/:id/rsvp", async (req, res) => {
 				.json({ error: "event_id and user_id must be UUIDs" });
 		}
 		if (!RSVP_STATUS.has(status)) {
-			return res
-				.status(400)
-				.json({
-					error: "status must be going|waitlisted|interested|cancelled",
-				});
+			return res.status(400).json({
+				error: "status must be going|waitlisted|interested|cancelled",
+			});
 		}
 
 		const sql = `
