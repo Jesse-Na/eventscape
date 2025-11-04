@@ -47,6 +47,10 @@ app.get("/register", (_req, res) => {
   res.render("register");
 });
 
+app.get("/post-register", (_req, res) => {
+  res.render("post-register");
+});
+
 // --- Health/DB utilities ---
 app.get("/status", (_req, res) => res.status(200).json({ status: "UP" }));
 

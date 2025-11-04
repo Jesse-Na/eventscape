@@ -40,11 +40,10 @@ body {
   letter-spacing: 0.3px;
 }
 
-/* --- Buttons --- */
 .cta{
   display: grid;
   gap: 14px;
-  width: 320px;      /* sets consistent pill width */
+  width: 320px;  
 }
 
 .pill{
@@ -60,7 +59,6 @@ body {
   transition: transform .06s ease, box-shadow .12s ease, background .2s ease;
 }
 
-/* White pill style */
 .pill-white{
   background: #ffffff;
   color: #0F1320;
@@ -186,137 +184,277 @@ body {
   line-height: normal;
 }
 
-
-/* --- Responsive --- */
-@media (max-width: 380px){
-  .brand-text{ font-size: 28px; }
-  .cta{ width: 100%; }
-}
-
-/* 1) Center the whole login section on the viewport */
+/* ------------------------- Login page -------------------------------------------- */
 .login{
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  background: #F0F1F5;         /* Light grey background */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #F0F1F5;
   padding: 24px;
 }
 
-/* 2) Brand right above the card */
 .login .brand{
-  display: inline-flex;
+  display: flex;
+  justify-content: center;
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
+  text-align: center;
 }
 .login .brand-logo{ width: 44px; height: 44px; }
 .login .brand-text{ font-weight: 700; font-size: 36px; letter-spacing: .3px; }
 
-/* 3) Card sizing (the white rectangle will fill this) */
 .login .card{
   position: relative;
-  width: 520px;            /* tweak if you want wider/narrower */
-  border-radius: 20px;
+  width: 420px;
+  min-height: 330px;             
+  border-radius: 24px;
+  overflow: hidden;              
 }
 
-/* ==== FIX: neutralize legacy page sizing ==== */
-.login{
-  min-width: 0 !important;
-  min-height: 0 !important;
-  width: 100% !important;
-}
-
-/* ==== FIX: keep the white card under the fields (no page-level offset) ==== */
-.login .card .login-big-white{
-  position: relative !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: auto !important;
-  z-index: 1;
-}
-
-/* Content (labels/inputs/buttons) sits on top of the white card */
-.login .card-body {
+.login .login-big-white{
   position: absolute;
   inset: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;  /* keeps buttons at the bottom */
-  padding: 32px 24px;
-}
-
-/* Stack the input fields vertically */
-.login .card-body form,
-.login .card-body .fields {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.login .card-body .label {
-  margin-bottom: 2px;   /* tightens label-to-field space */
-}
-
-.login .card-body .field {
-  margin-bottom: 10px;  /* space between field blocks */
-}
-
-/* Arrange the Go Back and Log In pills side by side and at the bottom */
-.login .card-body .actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
-  margin-top: 24px;
-}
-
-/* Pills: make sure the SVG fills the pill and isn’t clipped */
-.login .pill {
-  position: relative;
-  display: grid;
-  place-items: center;
-  height: 56px;
-  width: 100%;
-  border-radius: 28px;
-  overflow: visible;           /* ensures SVG not cropped */
-  text-decoration: none;
-  color: #0F1320;
-  font-weight: 700;
-}
-
-.login .pill .pill-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
+  width: 100%;    
   height: 100%;
-  object-fit: contain;         /* keep full pill visible */
+  object-fit: cover;
   z-index: 1;
   pointer-events: none;
 }
 
-.login .pill span {
+.login .card-body{
   position: relative;
   z-index: 2;
+  height: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-/* Neutralize old absolute rules for this page (prevents zoom drift) */
-.login .text-wrapper,
-.login .text-wrapper-2,
-.login .text-wrapper-3,
-.login .text-wrapper-4,
-.login .grey-rectangle,
-.login .grey-rectangle-2,
-.login .green-rectangle,
-.login .red-rectangle{
+.login .fields,
+.login .actions{
+  max-width: 400px;
+  width: 80%;
+  margin: 0 auto;
+}
+
+.login .fields{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.login .label{
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.login .field{
+  display: block;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #e3e7ee;
+  background: #eef1f6;
+  font: inherit; color: inherit;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(0,0,0,0.02);
+}
+
+.login .actions{
+  display: flex;
+  justify-content: center;
+  gap: 140px;
+  position: absolute;
+  bottom: -130px;              
+  left: 0;
+  right: 0;
+}
+
+.login .pill{
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 56px;
+  border-radius: 28px;
+  text-decoration: none;
+  color: #0F1320;
+  font-weight: 700;
+  overflow: visible;
+}
+.login .pill .pill-bg{
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  z-index: 1; pointer-events: none;
+}
+.login .pill span{ position: relative; z-index: 2; }
+
+.login .text-wrapper, .login .text-wrapper-2,
+.login .text-wrapper-3, .login .text-wrapper-4,
+.login .green-rectangle, .login .red-rectangle{
   position: static !important;
-  left: auto !important;
-  top: auto !important;
+  inset: auto !important;
   width: auto !important;
+  height: auto !important;
 }
 
-/* Optional: tighten overall spacing on very narrow screens */
 @media (max-width: 560px){
   .login .card{ width: 92vw; }
+}
+
+/* ------------------------- Register page -------------------------------------------- */
+
+.register {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #F0F1F5;
+  padding: 24px;
+}
+
+.register .brand {
+  display: flex;
+  justify-content: center;  
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.register .brand-logo {
+  width: 44px;
+  height: 44px;
+}
+.register .brand-text {
+  font-weight: 700;
+  font-size: 36px;
+  letter-spacing: 0.3px;
+}
+
+.register .card {
+  position: relative;
+  width: 520px;
+  min-height: 560px;        
+  border-radius: 24px;
+  overflow: hidden;          
+}
+
+.register .register-big-white {
+  position: absolute;
+  inset: 0;
+  width: 100%;         
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.register .card-body {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; 
+}
+
+.register .card-body .fields,
+.register .card-body .actions {
+  max-width: 400px;
+  width: 80%;                        
+  margin-left: auto;                 
+  margin-right: 50px;                
+}
+
+.register .label {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.register .fields {
+  max-width: 400px;
+  width: 80%;
+  margin-left: auto;
+  margin-right: 50px;         
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.register .field {
+  display: block;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #e3e7ee;
+  background: #eef1f6;
+  font: inherit;
+  color: inherit;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+.register select.field {
+  appearance: none;
+  background-image: none;
+}
+
+.register .actions {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 70px;
+  width: 88%;
+  max-width: 440px;
+  margin: 100px auto 0 auto;        
+  flex-shrink: 0;               
+  position: bottom;
+  bottom: 1px;                     
+  left: 0;
+  right: 0;
+}
+
+.register .go-back-link,
+.register .sign-up-link {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 56px;
+  border-radius: 28px;
+  text-decoration: none;
+  color: #0F1320;
+  font-weight: 700;
+  overflow: visible;
+}
+
+.register .red-rectangle,
+.register .green-rectangle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.register .text-wrapper-4,
+.register .text-wrapper-3 {
+  position: relative;
+  z-index: 2;
+  font-weight: 700;
+  color: #0F1320;
+}
+
+@media (max-width: 560px) {
+  .register .card {
+    width: 92vw;
+  }
 }
