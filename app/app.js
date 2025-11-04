@@ -4,8 +4,13 @@ const { Pool } = require("pg");
 
 const app = express();
 const path = require("path");
+const ejs = require("ejs");
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "frontend")));
+
+app.use(express.static(path.join(__dirname, "frontend"))); 
+app.set("views", path.join(__dirname, "frontend")); 
+app.set("view engine", "ejs");            
+app.engine("html", ejs.renderFile);      
 
 // --- Auth stub (double check) ---
 const authMiddleware = (_req, _res, next) => next();
@@ -26,9 +31,21 @@ const RSVP_STATUS = new Set(["going", "waitlisted", "interested", "cancelled"]);
 const isUUID = (s) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
 
-app.get("/", (_req, res) =>
-  res.sendFile(path.join(__dirname, "frontend/main.html"))
-);
+app.get("/", (_req, res) => {
+  res.render("main");
+});
+
+app.get("/main", (_req, res) => {
+  res.render("main");
+});
+
+app.get("/login", (_req, res) => {
+  res.render("login");
+});
+
+app.get("/register", (_req, res) => {
+  res.render("register");
+});
 
 // --- Health/DB utilities ---
 app.get("/status", (_req, res) => res.status(200).json({ status: "UP" }));

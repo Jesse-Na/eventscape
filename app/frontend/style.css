@@ -75,8 +75,248 @@ body {
 }
 .pill-white:active{ transform: translateY(1px); }
 
+.login {
+  background-color: #f0f1f5;
+  width: 100%;
+  min-width: 1280px;
+  min-height: 1080px;
+  position: relative;
+}
+
+.login .login-big-white {
+  position: absolute;
+  top: 448px;
+  left: calc(50.00% - 182px);
+  width: 363px;
+  height: 293px;
+}
+
+.login .text-wrapper {
+  position: absolute;
+  top: 468px;
+  left: 475px;
+  width: 328px;
+  transform: rotate(0.39deg);
+  font-family: "Poppins-SemiBold", Helvetica;
+  font-weight: 600;
+  color: #000000;
+  font-size: 20px;
+  letter-spacing: 0.20px;
+  line-height: normal;
+}
+
+.login .group {
+  position: absolute;
+  top: 365px;
+  left: 463px;
+  width: 407px;
+  height: 81px;
+  display: flex;
+  gap: 0.6px;
+  transform: rotate(0.39deg);
+}
+
+.login .div {
+  margin-top: 7.3px;
+  width: 327.8px;
+  height: 73.59px;
+  font-family: "Poppins-SemiBold", Helvetica;
+  font-weight: 600;
+  color: #000000;
+  font-size: 40px;
+  letter-spacing: 0.40px;
+  line-height: normal;
+}
+
+.login .text-wrapper-2 {
+  position: absolute;
+  top: 563px;
+  left: 469px;
+  width: 328px;
+  transform: rotate(0.39deg);
+  font-family: "Poppins-SemiBold", Helvetica;
+  font-weight: 600;
+  color: #000000;
+  font-size: 20px;
+  letter-spacing: 0.20px;
+  line-height: normal;
+}
+
+.login .green-rectangle {
+  position: absolute;
+  top: 664px;
+  right: 467px;
+  width: 123px;
+  height: 60px;
+}
+
+.login .text-wrapper-3 {
+  position: absolute;
+  top: 679px;
+  right: 469px;
+  width: 90px;
+  transform: rotate(0.39deg);
+  font-family: "Poppins-SemiBold", Helvetica;
+  font-weight: 600;
+  color: #000000;
+  font-size: 20px;
+  letter-spacing: 0.20px;
+  line-height: normal;
+}
+
+.login .red-rectangle {
+  position: absolute;
+  top: 664px;
+  left: 478px;
+  width: 123px;
+  height: 60px;
+}
+
+.login .text-wrapper-4 {
+  position: absolute;
+  top: 680px;
+  left: 495px;
+  width: 90px;
+  transform: rotate(0.39deg);
+  font-family: "Poppins-SemiBold", Helvetica;
+  font-weight: 600;
+  color: #000000;
+  font-size: 20px;
+  letter-spacing: 0.20px;
+  line-height: normal;
+}
+
+
 /* --- Responsive --- */
 @media (max-width: 380px){
   .brand-text{ font-size: 28px; }
   .cta{ width: 100%; }
+}
+
+/* 1) Center the whole login section on the viewport */
+.login{
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #F0F1F5;         /* Light grey background */
+  padding: 24px;
+}
+
+/* 2) Brand right above the card */
+.login .brand{
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.login .brand-logo{ width: 44px; height: 44px; }
+.login .brand-text{ font-weight: 700; font-size: 36px; letter-spacing: .3px; }
+
+/* 3) Card sizing (the white rectangle will fill this) */
+.login .card{
+  position: relative;
+  width: 520px;            /* tweak if you want wider/narrower */
+  border-radius: 20px;
+}
+
+/* ==== FIX: neutralize legacy page sizing ==== */
+.login{
+  min-width: 0 !important;
+  min-height: 0 !important;
+  width: 100% !important;
+}
+
+/* ==== FIX: keep the white card under the fields (no page-level offset) ==== */
+.login .card .login-big-white{
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: auto !important;
+  z-index: 1;
+}
+
+/* Content (labels/inputs/buttons) sits on top of the white card */
+.login .card-body {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;  /* keeps buttons at the bottom */
+  padding: 32px 24px;
+}
+
+/* Stack the input fields vertically */
+.login .card-body form,
+.login .card-body .fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login .card-body .label {
+  margin-bottom: 2px;   /* tightens label-to-field space */
+}
+
+.login .card-body .field {
+  margin-bottom: 10px;  /* space between field blocks */
+}
+
+/* Arrange the Go Back and Log In pills side by side and at the bottom */
+.login .card-body .actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+/* Pills: make sure the SVG fills the pill and isn’t clipped */
+.login .pill {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 56px;
+  width: 100%;
+  border-radius: 28px;
+  overflow: visible;           /* ensures SVG not cropped */
+  text-decoration: none;
+  color: #0F1320;
+  font-weight: 700;
+}
+
+.login .pill .pill-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;         /* keep full pill visible */
+  z-index: 1;
+  pointer-events: none;
+}
+
+.login .pill span {
+  position: relative;
+  z-index: 2;
+}
+
+/* Neutralize old absolute rules for this page (prevents zoom drift) */
+.login .text-wrapper,
+.login .text-wrapper-2,
+.login .text-wrapper-3,
+.login .text-wrapper-4,
+.login .grey-rectangle,
+.login .grey-rectangle-2,
+.login .green-rectangle,
+.login .red-rectangle{
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  width: auto !important;
+}
+
+/* Optional: tighten overall spacing on very narrow screens */
+@media (max-width: 560px){
+  .login .card{ width: 92vw; }
 }
