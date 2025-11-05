@@ -17,34 +17,43 @@
       <img class="register-big-white" src="register-big-white-square.svg" alt="">
       <div class="card-body">
         <div class="fields">
-          <label class="label" for="email">Email</label>
-          <input class="field" id="email" type="email" autocomplete="email" required />
+          <form method="post" action="/register">
+            <label class="label" for="email">Email</label>
+            <input class="field" id="email" type="email" name="email" autocomplete="email" required />
 
-          <label class="label" for="password">Password</label>
-          <input class="field" id="password" type="password" autocomplete="new-password" required />
+            <label class="label" for="password">Password</label>
+            <input class="field" id="password" type="password" name="password" autocomplete="new-password" required />
 
-          <label class="label" for="displayName">Display Name</label>
-          <input class="field" id="displayName" type="text" autocomplete="nickname" />
+            <label class="label" for="displayName">Display Name</label>
+            <input class="field" id="displayName" type="text" name="displayName" autocomplete="nickname" />
 
-          <label class="label" for="notif">Notification Preference</label>
-          <select class="field" id="notif" name="notification">
-            <option value="email">Email Only</option>
-            <option value="inapp">In-app Only</option>
-            <option value="all">All</option>
-            <option value="none">None</option>
-          </select>
+            <label class="label" for="notif">Notification Preference</label>
+            <select class="field" id="notif" name="notification">
+              <option value="email">Email Only</option>
+              <option value="in_app">In-app Only</option>
+              <option value="all">All</option>
+              <option value="none">None</option>
+            </select>
+            <p class="error-text"> <%= error %> </p>
+
+            <div class="actions">
+              <a href="./main" class="go-back-link">
+                <img class="red-rectangle" src="red-rectangle.svg" alt="">
+                <span class="text-wrapper-4">Go Back</span>
+              </a>
+
+              <button class="sign-up-link" type="submit" onClick={submit}>
+                <img class="green-rectangle" src="green-rectangle.svg" alt="">
+                <span class="text-wrapper-3">Sign Up</span>
+              </button>
+              <!-- <a href="./post-register" class="sign-up-link">
+                <img class="green-rectangle" src="green-rectangle.svg" alt="">
+                <span class="text-wrapper-3">Sign Up</span>
+              </a> -->
+            </div>
+          </form>
         </div>
 
-        <div class="actions">
-          <a href="./main" class="go-back-link">
-            <img class="red-rectangle" src="red-rectangle.svg" alt="">
-            <span class="text-wrapper-4">Go Back</span>
-          </a>
-          <a href="./post-register" class="sign-up-link">
-            <img class="green-rectangle" src="green-rectangle.svg" alt="">
-            <span class="text-wrapper-3">Sign Up</span>
-          </a>
-        </div>
       </div>
     </div>
   </div>

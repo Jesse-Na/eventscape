@@ -30,18 +30,19 @@ app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 app.engine("html", ejs.renderFile);
 
-passport.serializeUser((user, done) =>
+passport.serializeUser((user, done) => {
 	done(null, {
-		id: user.user_id,
 		email: user.email,
-	})
-);
-passport.deserializeUser(async ({ id }, done) => {
+		displayName: user.display_name,
+		notificationSetting: user.notification_setting,
+	});
+});
+passport.deserializeUser(async (user, done) => {
 	// Fetch user from db
 	try {
 		const { rows } = await pool.query(
-			`select user_id, email from users where user_id = $1`,
-			[id]
+			`select user_id, email from users where email = $1`,
+			[user.email]
 		);
 
 		return done(null, rows[0]);
@@ -64,46 +65,62 @@ const isUUID = (s) =>
 	);
 
 app.get("/", (req, res) => {
-	if (req.session.userId) {
-		const email = req.session.email;
-		res.render("main", { email: email });
+	if (req.session.passport && req.session.passport.user) {
+		const email = req.session.passport.user.email;
+		return res.render("main", { email });
 	}
-	return res.render("main", { email: null });
+	res.render("main", { email: null });
 });
 
 app.get("/main", (req, res) => {
 	res.redirect("/");
 });
 
-app.get("/login", (req, res) => {
-	if (req.session.userId) {
-		res.redirect("/");
+app.get("/dashboard", (req, res) => {
+	if (req.session.passport && req.session.passport.user) {
+		const displayName = req.session.passport.user.displayName;
+		return res.render("dashboard", { displayName });
 	}
-	res.render("login", { error: null });
+
+	return res.redirect("/login");
+});
+
+app.get("/login", (req, res) => {
+	if (req.session.passport && req.session.passport.user) {
+		return res.redirect("/dashboard");
+	}
+	res.render("login", {
+		error: req.session.messages ? req.session.messages.at(-1) : null,
+		email: "",
+	});
 });
 
 app.post(
 	"/login",
-	passport.authenticate("local", { session: false }),
-	(req, res) => {
-		// Passport returns user object in body
-		req.session.userId = req.body.user_id;
-		req.session.email = req.body.email;
-		req.session.save();
-
-		return res.redirect("/");
-	}
+	(req, res, next) => {
+		if (!req.body.email || !req.body.password) {
+			return res.status(400).render("login", {
+				error: "Missing fields",
+				email: req.body.email || "",
+			});
+		}
+		next();
+	},
+	passport.authenticate("local", {
+		successRedirect: "/dashboard",
+		failureRedirect: "/login",
+		failureMessage: true,
+	})
 );
 
 app.get("/register", (req, res) => {
-	if (req.session.userId) {
-		res.redirect("/");
+	if (req.session.passport && req.session.passport.user) {
+		return res.redirect("/dashboard");
 	}
 	res.render("register", { error: null });
 });
 
 app.post("/register", async (req, res) => {
-	console.log(req.body);
 	const { email, password } = req.body;
 	if (!email && !password) {
 		return res.status(400).render("register", { error: "Missing fields" });
@@ -121,21 +138,23 @@ app.post("/register", async (req, res) => {
 			});
 		}
 
+		const displayName = req.body.displayName || "";
+		const notificationPref = req.body.notification || "all";
+
 		// Hash the password before saving it to the database
 		const salt = await bcrypt.genSalt(15);
 		const hashedPassword = await bcrypt.hash(password, salt);
 
 		// Create and save the new user
 		const insertResult = await pool.query(
-			`INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING user_id`,
-			[email, hashedPassword]
+			`INSERT INTO users (email, password_hash, display_name, notification_setting) VALUES ($1, $2, $3, $4) RETURNING user_id`,
+			[email, hashedPassword, displayName, notificationPref]
 		);
 
-		// req.session.userId = insertResult.rows[0].user_id;
-		// req.session.email = email;
-		// req.session.save();
-
-		return res.redirect("/login");
+		return res.status(201).render("login", {
+			error: null,
+			email: email,
+		});
 	} catch (err) {
 		return res.status(500).json({ message: err.message });
 	}

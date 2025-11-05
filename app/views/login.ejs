@@ -16,11 +16,13 @@
     <div class="card">
       <img class="login-big-white" src="login-big-white-rectangle.svg" alt="">
       <div class="card-body">
-        <label class="label" for="email">Email</label>
-        <input class="field" id="email" type="email" autocomplete="email" />
+        <form method="post" action="/login">
+          <label class="label" for="email">Email</label>
+          <input class="field" id="email" type="email" name="email" autocomplete="email" value="<%= email %>" required />
 
-        <label class="label" for="password">Password</label>
-        <input class="field" id="password" type="password" autocomplete="current-password" />
+          <label class="label" for="password">Password</label>
+          <input class="field" id="password" type="password" name="password" autocomplete="current-password" required />
+          <p class="error-text"> <%= error %> </p>
 
         <div class="actions">
           <a class="pill pill-back" href="./main">
@@ -28,10 +30,17 @@
             <span>Go Back</span>
           </a>
 
-          <a class="pill pill-primary" href="./dashboard">
+          <button class="pill pill-primary" type="submit" onClick={submit}>
             <img class="pill-bg" src="green-rectangle.svg" alt="">
             <span>Log In</span>
-          </a>
+          </button>
+
+          <!-- <a class="pill pill-primary" href="./dashboard">
+            <img class="pill-bg" src="green-rectangle.svg" alt="">
+            <span>Log In</span>
+          </a> -->
+        </form>
+
         </div>
       </div>
     </div>
