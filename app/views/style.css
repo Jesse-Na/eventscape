@@ -566,26 +566,22 @@ button.sign-up-link:active {
   position: absolute;
   top: 0;
   left: 0;
-  width: 255px;
-  height: 1093px;
 }
 
 .event-dashboard .dashboard-main-white {
   position: absolute;
-  top: 96px;
-  left: calc(50% - 365px);
-  width: 968px;
-  height: 932px;
+  top: 90px;
+  width: 2800px;
+  height: 1000px;
+  left: calc(50% - 1300px);
   z-index: 0;
   pointer-events: none;
 }
 
 .event-dashboard .dashboard-stats {
   position: absolute;
-  top: 8px;
   left: calc(50% - 365px);
-  width: 968px;
-  height: 112px;
+  width: 930px;
   transform-origin: top center;
   transform: scale(1.15);
   z-index: 1;
@@ -593,10 +589,10 @@ button.sign-up-link:active {
 
 .event-dashboard .stats-header {
   position: absolute;
-  top: 21px;
-  left: calc(50% - 365px);
+  top: 19px;
+  left: calc(50% - 350px);
   width: 968px;
-  height: 84px;
+  height: 80px;
   transform-origin: top center;
   transform: scale(1.15);
   z-index: 2;
@@ -614,24 +610,44 @@ button.sign-up-link:active {
   line-height: normal;
   z-index: 3;
 }
-.event-dashboard .stat--upcoming { left: 444px; }
-.event-dashboard .stat--attended { left: 783px; }
-.event-dashboard .stat--notifications { left: 1089px; }
+
+.event-dashboard .stat--upcoming { 
+  left: calc(50% - 220px); 
+  font-size: 40px;
+  top: 60px;
+}
+
+.event-dashboard .stat--attended { 
+  left: calc(50% + 140px); 
+  font-size: 40px;
+  top: 60px;
+}
+
+.event-dashboard .stat--notifications { 
+  left: calc(50% + 470px);
+  font-size: 40px;
+  top: 60px;
+}
 
 .event-dashboard .sidebar-actions {
   position: absolute;
-  top: 238px;
-  left: calc(50% - 623px);
+  top: 40%;
+  left: 0;
+  width: 255px;              /* match sidebar width */
+  transform: translateY(-65%);
   display: flex;
   flex-direction: column;
+  align-items: center;       /* center buttons horizontally */
+  justify-content: center;   /* center buttons vertically */
   gap: 20px;
 }
+
 
 .event-dashboard .pill {
   position: relative;
   display: block;
-  width: 300px;
-  height: 60px;
+  width: 200px;
+  height: 50px;
   text-decoration: none;
   color: #000000;
   font-family: "Poppins-SemiBold", Helvetica;
@@ -660,6 +676,7 @@ button.sign-up-link:active {
   font-weight: 600;
 }
 
+
 .event-dashboard .brand {
   position: absolute;
   top: 24px;
@@ -672,7 +689,8 @@ button.sign-up-link:active {
 .event-dashboard .brand-logo {
   width: 32px;
   height: 32px;
-  margin-top: 2px;
+  margin-top: 8px;
+  margin-left: -20px;
   object-fit: contain;
 }
 
@@ -680,19 +698,24 @@ button.sign-up-link:active {
   font-size: 32px;
   font-weight: 700;
   letter-spacing: 0.3px;
+  margin-left: -2px;
 }
 
 .event-dashboard .greeting {
   position: absolute;
   top: 129px;
-  left: 45px;
-  margin: 0;
+  left: 0;
+  width: 255px;                 
+  text-align: center;            
+  margin: 0 auto;
   font-family: "Poppins-SemiBold", Helvetica;
   font-weight: 600;
   color: #000000;
-  font-size: 32px;
+  font-size: 20px;               
   letter-spacing: 0.32px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;       
 }
 
 .event-dashboard img {

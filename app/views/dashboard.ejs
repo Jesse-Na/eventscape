@@ -23,9 +23,9 @@
 
       <!-- Stats header overlay -->
       <img class="stats-header" src="stats-header.svg" alt="" aria-hidden="true" />
-      <div class="stat stat--upcoming">x</div>
-      <div class="stat stat--attended">y</div>
-      <div class="stat stat--notifications">z</div>
+      <div class="stat stat--upcoming">400</div>
+      <div class="stat stat--attended">400</div>
+      <div class="stat stat--notifications">400</div>
 
       <!-- Sidebar text items -->
       <div class="brand">
@@ -34,31 +34,46 @@
       </div>
       <h2 class="greeting">Hi, <%= displayName %></h2>
       <div class="sidebar-actions">
-        <a class="pill pill-grey" href="./dashboard">
+        <button class="pill pill-grey" type="button" onclick="location.href='./dashboard'">
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>Event Dashboard</span>
-        </a>
+        </button>
 
-        <a class="pill pill-grey" href="./rsvps">
+        <button class="pill pill-grey" type="button" onclick="location.href='./rsvps'">
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>RSVP’d Events</span>
-        </a>
+        </button>
 
-        <a class="pill pill-grey" href="./your-events">
+        <button class="pill pill-grey" type="button" onclick="location.href='./your-events'">
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>Your Events</span>
-        </a>
+        </button>
 
-        <a class="pill pill-grey" href="./inbox">
+        <button class="pill pill-grey" type="button" onclick="location.href='./inbox'">
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>Inbox</span>
-        </a>
+        </button>
 
-        <a class="pill pill-grey profile-settings" href="./profile-settings">
+        <button class="pill pill-grey profile-settings" type="button" onclick="location.href='./profile-settings'">
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>Profile Settings</span>
-        </a>
+        </button>
       </div>
     </div>
+    <script>
+      window.addEventListener("load", function () {
+        const greeting = document.querySelector(".greeting");
+        if (!greeting) return;
+
+        const maxWidth = 255; 
+        let fontSize = 20;   
+        while (greeting.scrollWidth > maxWidth && fontSize > 10) {
+          fontSize -= 0.5;
+          greeting.style.fontSize = fontSize + "px";
+        }
+        greeting.style.width = maxWidth + "px";
+        greeting.style.textAlign = "center";
+      });
+    </script>
   </body>
 </html>
