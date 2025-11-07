@@ -308,6 +308,18 @@ body {
   height: auto !important;
 }
 
+button.pill {
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+button.pill:focus,
+button.pill:active {
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
 @media (max-width: 560px){
   .login .card{ width: 92vw; }
 }
@@ -450,12 +462,35 @@ body {
   pointer-events: none;
 }
 
-.register .text-wrapper-4,
+.register .text-wrapper-4{
+  position: relative;
+  z-index: 2;
+  font-weight: 700;
+  font-size: 18px;
+  color: #0F1320;
+}
+
 .register .text-wrapper-3 {
   position: relative;
   z-index: 2;
   font-weight: 700;
   color: #0F1320;
+  font-size: 18px;
+}
+
+button.sign-up-link {
+  border: none;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+button.sign-up-link:focus,
+button.sign-up-link:active {
+  border: none;
+  outline: none;
+  box-shadow: none;
 }
 
 @media (max-width: 560px) {
@@ -516,10 +551,6 @@ body {
   border-radius: 50px;
 }
 
-.pill-back:hover {
-  transform: translateY(-2px);
-  transition: 0.2s ease;
-}
 /* ------------------------- Dashboard -------------------------------------------- */
 
 .event-dashboard {
