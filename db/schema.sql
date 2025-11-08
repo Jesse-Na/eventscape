@@ -88,7 +88,7 @@ CREATE INDEX IF NOT EXISTS idx_rsvps_waitlist     ON rsvps(event_id, waitlist_po
 CREATE TABLE IF NOT EXISTS invitations (
   invitation_id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   event_id        UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-  invited_by      UUID NOT NULL REFERENCES users(user_id) ON DELETE SET NULL,
+  invited_by      UUID REFERENCES users(user_id) ON DELETE SET NULL,
   mode            invite_mode_enum NOT NULL,
   recipient_email CITEXT,
   message         TEXT,
