@@ -3,8 +3,16 @@ kind: Kustomization
 resources:
     - db-pv.yaml
     - db-pvc.yaml
-    - db-configmap.yaml
     - db-deployment.yaml
     - db-service.yaml
     - app-deployment.yaml
     - app-service.yaml
+
+configMapGenerator:
+  - name: postgres-cm
+    files:
+      - db/schema.sql
+      - db/seed.sql
+
+generatorOptions:
+  disableNameSuffixHash: true
