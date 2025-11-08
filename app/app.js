@@ -59,6 +59,9 @@ app.use(authMiddleware);
 // --- Helpers ---
 const VISIBILITY = new Set(["public", "private", "unlisted"]);
 const RSVP_STATUS = new Set(["going", "waitlisted", "interested", "cancelled"]);
+const NOTIFICATION_SETTING = new Set(["none","email","in_app","all"]);
+const INVITE_MODE = new Set(["email", "link"]);
+const INVITE_STATUS = new Set(["pending","accepted","declined","expired"]);
 const isUUID = (s) =>
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
 		s
@@ -218,6 +221,28 @@ app.get("/users", async (_req, res) => {
 	}
 });
 
+// GET /users/:id: Retrieve a user by id
+app.get("/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid user_id" });
+
+    const { rows } = await pool.query(`
+      SELECT user_id, email, display_name, notification_setting, created_at 
+      FROM users 
+      WHERE user_id = $1`, 
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.status(200).json(rows[0]);
+  } catch (e) {
+    console.error("Error fetching user:", e.message);
+    res.status(500).json({ error: "Server error: Failed to fetch user" });
+  }
+});
+
 app.post("/users", async (req, res) => {
 	try {
 		const {
@@ -239,6 +264,68 @@ app.post("/users", async (req, res) => {
 			return res.status(409).json({ error: "Email already exists" });
 		res.status(500).json({ error: "Failed to create user" });
 	}
+});
+
+// PUT /users/:id: Update a user by ID (supports partial update)
+app.put("/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid user_id" });
+
+    if (req.body.notification_setting && !NOTIFICATION_SETTING.has(req.body.notification_setting)) {
+      return res.status(400).json({ error: "Invalid value for notification setting" });
+    }
+
+    const retrieveResult = await pool.query(`
+      SELECT email, password_hash, display_name, notification_setting 
+      FROM users 
+      WHERE user_id = $1`, 
+      [id]
+    );
+    if (retrieveResult.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const existingUser = retrieveResult.rows[0];
+
+    const updatedUser = { 
+      email: req.body.email ?? existingUser.email,
+      password_hash: req.body.password_hash ?? existingUser.password_hash,
+      display_name: req.body.display_name ?? existingUser.display_name,
+      notification_setting: req.body.notification_setting ?? existingUser.notification_setting
+    }
+
+    const result = await pool.query(`
+      UPDATE users 
+      SET email = $1,
+          password_hash = $2,
+          display_name = $3,
+          notification_setting = $4 
+      WHERE user_id = $5 
+      RETURNING user_id, email, display_name, notification_setting, created_at`, 
+      [updatedUser.email, updatedUser.password_hash, updatedUser.display_name, updatedUser.notification_setting, id]);
+    res.status(200).json(result.rows[0]);
+  } catch (e) {
+    console.error("Error updating user:", e.message);
+    res.status(500).json({ error: "Server error: Failed to update user" });
+  }
+});
+
+// DELETE /users/:id: Delete a user by ID
+app.delete("/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid user_id" });
+
+    const { rows } = await pool.query(`DELETE FROM users WHERE user_id = $1 RETURNING *`, [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.status(204).send();
+  }
+  catch (e) {
+    console.error("Error deleting user:", e.message);
+    res.status(500).json({ error: "Server error: Failed to delete user" });
+  }
 });
 
 // --- EVENTS ---
@@ -344,6 +431,104 @@ app.get("/events/:id", async (req, res) => {
 	}
 });
 
+// GET /events/host/:id: Get all events given host id
+app.get("/events/host/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "invalid host_id" });
+
+    const q = `
+      SELECT e.event_id, e.title, e.location, e.start_time, e.end_time, e.visibility,
+             e.capacity, e.waitlist, e.content, e.created_at,
+             COALESCE(v.going_count,0) AS going_count,
+             COALESCE(v.interested_count,0) AS interested_count,
+             COALESCE(v.waitlisted_count,0) AS waitlisted_count
+      FROM events e
+      LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
+      WHERE e.host_id = $1
+      ORDER BY e.start_time ASC;
+    `;
+    const { rows } = await pool.query(q, [id]);
+    res.status(200).json(rows);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch events" });
+  }
+});
+
+// PUT /events/:id: Update an event by ID (supports partial update)
+app.put("/events/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid event_id" });
+
+    if (req.body.visibility && !VISIBILITY.has(req.body.visibility)) {
+      return res.status(400).json({ error: "Invalid value for visibility" });
+    }
+
+    if (req.body.capacity && (isNaN(parseInt(req.body.capacity, 10)) || req.body.capacity < 0)) {
+      return res.status(400).json({ error: "Invalid value for capacity" });
+    }
+
+    const retrieveResult = await pool.query(`
+      SELECT title, location, start_time, end_time, capacity, waitlist, visibility, content
+      FROM events 
+      WHERE event_id = $1`, 
+      [id]
+    );
+    if (retrieveResult.rows.length === 0) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    const existingEvent = retrieveResult.rows[0];
+
+    const updatedEvent = { 
+      title: req.body.title ?? existingEvent.title,
+      location: req.body.location ?? existingEvent.location,
+      start_time: req.body.start_time ?? existingEvent.start_time,
+      end_time: req.body.end_time ?? existingEvent.end_time,
+      capacity: req.body.capacity !== undefined ? parseInt(req.body.capacity, 10) : existingEvent.capacity,
+      waitlist: req.body.waitlist ?? existingEvent.waitlist,
+      visibility: req.body.visibility ?? existingEvent.visibility,
+      content: req.body.content ?? existingEvent.content
+    }
+
+    const result = await pool.query(`
+      UPDATE events 
+      SET title = $1,
+          location = $2,
+          start_time = $3,
+          end_time = $4,
+          capacity = $5,
+          waitlist = $6,
+          visibility = $7,
+          content = $8
+      WHERE event_id = $9 
+      RETURNING *`, 
+      [updatedEvent.title, updatedEvent.location, updatedEvent.start_time, updatedEvent.end_time, updatedEvent.capacity, updatedEvent.waitlist, updatedEvent.visibility, updatedEvent.content, id]);
+    res.status(200).json(result.rows[0]);
+  } catch (e) {
+    console.error("Error updating event:", e.message);
+    res.status(500).json({ error: "Server error: Failed to update event" });
+  }
+});
+
+// DELETE /events/:id: Delete an event by ID
+app.delete("/events/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid event_id" });
+
+    const { rows } = await pool.query(`DELETE FROM events WHERE event_id = $1 RETURNING *`, [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    res.status(204).send();
+  }
+  catch (e) {
+    console.error("Error deleting event:", e.message);
+    res.status(500).json({ error: "Server error: Failed to delete event" });
+  }
+});
+
 // --- RSVPS ---
 app.post("/events/:id/rsvp", async (req, res) => {
 	try {
@@ -419,6 +604,89 @@ app.get("/events/:id/rsvps", async (req, res) => {
 	}
 });
 
+// GET /users/:id/rsvps: Get all rsvps for a user
+app.get("/users/:id/rsvps", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "invalid user_id" });
+
+    const q = `
+      SELECT r.rsvp_id, r.event_id, r.user_id, r.status, r.waitlist_position, r.created_at,
+             e.title
+      FROM rsvps r
+      JOIN events e ON e.event_id = r.event_id
+      WHERE r.user_id = $1
+      ORDER BY r.created_at DESC
+    `;
+    const { rows } = await pool.query(q, [id]);
+    res.status(200).json(rows);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch rsvps" });
+  }
+});
+
+// PUT /rsvps/:id: Update an rsvp by ID (supports partial update)
+app.put("/rsvps/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid rsvp_id" });
+
+    if (req.body.status && !RSVP_STATUS.has(req.body.status)) {
+      return res.status(400).json({ error: "Invalid value for status" });
+    }
+
+    if (req.body.waitlist_position && (isNaN(parseInt(req.body.waitlist_position, 10)) || req.body.waitlist_position < 0)) {
+      return res.status(400).json({ error: "Invalid value for waitlist_position" });
+    }
+
+    const retrieveResult = await pool.query(`
+      SELECT status, waitlist_position
+      FROM rsvps 
+      WHERE rsvp_id = $1`, 
+      [id]
+    );
+    if (retrieveResult.rows.length === 0) {
+      return res.status(404).json({ error: "RSVP not found" });
+    }
+    const existingRSVP = retrieveResult.rows[0];
+
+    const updatedRSVP = {
+      status: req.body.status ?? existingRSVP.status,
+      waitlist_position: req.body.waitlist_position !== undefined ? parseInt(req.body.waitlist_position, 10) : existingRSVP.waitlist_position
+    }
+
+    const result = await pool.query(`
+      UPDATE rsvps 
+      SET status = $1,
+          waitlist_position = $2
+      WHERE rsvp_id = $3 
+      RETURNING *`, 
+      [updatedRSVP.status, updatedRSVP.waitlist_position, id]);
+    res.status(200).json(result.rows[0]);
+  } catch (e) {
+    console.error("Error updating rsvp:", e.message);
+    res.status(500).json({ error: "Server error: Failed to update rsvp" });
+  }
+});
+
+// DELETE /rsvps/:id: Delete an rsvp by ID
+app.delete("/rsvps/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid rsvp_id" });
+
+    const { rows } = await pool.query(`DELETE FROM rsvps WHERE rsvp_id = $1 RETURNING *`, [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Rsvp not found" });
+    }
+    res.status(204).send();
+  }
+  catch (e) {
+    console.error("Error deleting rsvp:", e.message);
+    res.status(500).json({ error: "Server error: Failed to delete rsvp" });
+  }
+});
+
 // --- ANNOUNCEMENTS ---
 app.post("/events/:id/announcements", async (req, res) => {
 	try {
@@ -465,6 +733,60 @@ app.get("/events/:id/announcements", async (req, res) => {
 	}
 });
 
+// PUT /announcements/:id: Update an announcement by ID (supports partial update)
+app.put("/announcements/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid announcement_id" });
+
+    const retrieveResult = await pool.query(`
+      SELECT content, scheduled_release
+      FROM announcements
+      WHERE announcement_id = $1`, 
+      [id]
+    );
+    if (retrieveResult.rows.length === 0) {
+      return res.status(404).json({ error: "Announcement not found" });
+    }
+    const existingAnnouncement = retrieveResult.rows[0];
+
+    const updatedAnnouncement = { 
+      content: req.body.content ?? existingAnnouncement.content,
+      scheduled_release: req.body.scheduled_release ?? existingAnnouncement.scheduled_release
+    }
+
+    const result = await pool.query(`
+      UPDATE announcements 
+      SET content = $1,
+          scheduled_release = $2
+      WHERE announcement_id = $3 
+      RETURNING *`, 
+      [updatedAnnouncement.content, updatedAnnouncement.scheduled_release, id]);
+    res.status(200).json(result.rows[0]);
+  } catch (e) {
+    console.error("Error updating announcement:", e.message);
+    res.status(500).json({ error: "Server error: Failed to update announcement" });
+  }
+});
+
+// DELETE /announcements/:id: Delete an announcement by ID
+app.delete("/announcements/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid announcement_id" });
+
+    const { rows } = await pool.query(`DELETE FROM announcements WHERE announcement_id = $1 RETURNING *`, [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Announcement not found" });
+    }
+    res.status(204).send();
+  }
+  catch (e) {
+    console.error("Error deleting announcement:", e.message);
+    res.status(500).json({ error: "Server error: Failed to delete announcement" });
+  }
+});
+
 // --- INVITATIONS ---
 app.post("/invitations", async (req, res) => {
 	try {
@@ -504,8 +826,8 @@ app.get("/events/:id/invitations", async (req, res) => {
 		if (!isUUID(event_id))
 			return res.status(400).json({ error: "invalid event_id" });
 
-		const { rows } = await pool.query(
-			`SELECT invitation_id, event_id, invited_by, mode, recipient_email, status, created_at
+    const { rows } = await pool.query(
+      `SELECT *
        FROM invitations
        WHERE event_id = $1
        ORDER BY created_at DESC
@@ -516,6 +838,80 @@ app.get("/events/:id/invitations", async (req, res) => {
 	} catch (e) {
 		res.status(500).json({ error: "Failed to list invitations" });
 	}
+});
+
+// GET /invitations/:id: Retrieve an invitation by id
+app.get("/invitations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid invitation_id" });
+
+    const { rows } = await pool.query(`
+      SELECT *
+      FROM invitations 
+      WHERE invitation_id = $1`, 
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Invitation not found" });
+    }
+    res.status(200).json(rows[0]);
+  } catch (e) {
+    console.error("Error fetching invitation:", e.message);
+    res.status(500).json({ error: "Server error: Failed to fetch invitation" });
+  }
+});
+
+// PUT /invitations/:id: Update an invitation by ID (supports partial update)
+app.put("/invitations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isUUID(id)) return res.status(400).json({ error: "Invalid invitation_id" });
+
+    if (req.body.mode && !INVITE_MODE.has(req.body.mode)) {
+      return res.status(400).json({ error: "Invalid value for mode" });
+    }
+
+    if (req.body.status && !INVITE_STATUS.has(req.body.status)) {
+      return res.status(400).json({ error: "Invalid value for status" });
+    }
+
+    const retrieveResult = await pool.query(`
+      SELECT mode, recipient_email, message, status, expires_at, accepted_at
+      FROM invitations 
+      WHERE invitation_id = $1`, 
+      [id]
+    );
+    if (retrieveResult.rows.length === 0) {
+      return res.status(404).json({ error: "Invitation not found" });
+    }
+    const existingInvitation = retrieveResult.rows[0];
+
+    const updatedInvitation = { 
+      mode: req.body.mode ?? existingInvitation.mode,
+      recipient_email: req.body.recipient_email ?? existingInvitation.recipient_email,
+      message: req.body.message ?? existingInvitation.message,
+      status: req.body.status ?? existingInvitation.status,
+      expires_at: req.body.expires_at ?? existingInvitation.expires_at,
+      accepted_at: req.body.accepted_at ?? existingInvitation.accepted_at
+    }
+
+    const result = await pool.query(`
+      UPDATE invitations 
+      SET mode = $1,
+          recipient_email = $2,
+          message = $3,
+          status = $4,
+          expires_at = $5,
+          accepted_at = $6
+      WHERE invitation_id = $7 
+      RETURNING *`, 
+      [updatedInvitation.mode, updatedInvitation.recipient_email, updatedInvitation.message, updatedInvitation.status, updatedInvitation.expires_at, updatedInvitation.accepted_at, id]);
+    res.status(200).json(result.rows[0]);
+  } catch (e) {
+    console.error("Error updating invitation:", e.message);
+    res.status(500).json({ error: "Server error: Failed to update invitation" });
+  }
 });
 
 // --- Start server & verify DB connectivity once ---
