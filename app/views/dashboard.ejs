@@ -34,29 +34,33 @@
       </div>
       <h2 class="greeting">Hi, <%= displayName %></h2>
       <div class="sidebar-actions">
-        <button class="pill pill-grey" type="button" onclick="location.href='./dashboard'">
+        <button class="pill pill-grey" type="submit" onClick={submit}>
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>Event Dashboard</span>
         </button>
 
-        <button class="pill pill-grey" type="button" onclick="location.href='./rsvps'">
+        <button class="pill pill-grey" type="submit" onClick={submit}>
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>RSVP’d Events</span>
         </button>
 
-        <button class="pill pill-grey" type="button" onclick="location.href='./your-events'">
+        <button class="pill pill-grey" type="submit" onClick={submit}>
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>Your Events</span>
         </button>
 
-        <button class="pill pill-grey" type="button" onclick="location.href='./inbox'">
+        <button class="pill pill-grey" type="submit" onClick={submit}>
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>Inbox</span>
         </button>
 
-        <button class="pill pill-grey profile-settings" type="button" onclick="location.href='./profile-settings'">
+        <button class="pill pill-grey profile-settings" type="submit" onClick={submit}>
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>Profile Settings</span>
+        </button>
+        <button class="pill pill-grey log-out" type="submit" onClick={submit}>
+          <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
+          <span>Log Out</span>
         </button>
       </div>
     </div>
