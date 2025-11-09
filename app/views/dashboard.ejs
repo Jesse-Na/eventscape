@@ -19,21 +19,18 @@
       <% if (typeof panel !=='undefined' && panel==='profile' ) { %>
         <section class="profile-panel">
           <h2>Profile Settings</h2>
-
           <div class="profile-row">
             <label>Display name</label>
             <div class="readonly-value">
               <%= displayName %>
             </div>
           </div>
-
           <div class="profile-row">
             <label>Email</label>
             <div class="readonly-value">
               <%= email %>
             </div>
           </div>
-
           <form id="notifForm" class="profile-row" method="POST" action="/profile/notification">
             <label for="notification_setting">Notifications</label>
             <select id="notification_setting" name="notification_setting"
@@ -44,7 +41,6 @@
               <option value="all" <%=notification_setting==='all' ? 'selected' : '' %>>All</option>
             </select>
           </form>
-
           <% if (saved) { %>
             <div class="profile-saved">Settings saved ✔</div>
             <% } %>
@@ -72,32 +68,27 @@
     <h2 class="greeting">Hi, <%= displayName %>
     </h2>
     <div class="sidebar-actions">
-      <button class="pill pill-grey" type="submit" onClick={submit}>
-        <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
+      <a class="pill pill-grey" href="/events">
         <span>Event Dashboard</span>
-      </button>
-
-      <button class="pill pill-grey" type="submit" onClick={submit}>
-        <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
+      </a>
+    
+      <a class="pill pill-grey" href="/rsvp">
         <span>RSVP’d Events</span>
-      </button>
-
-      <button class="pill pill-grey" type="submit" onClick={submit}>
-        <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
+      </a>
+    
+      <a class="pill pill-grey" href="/your-events">
         <span>Your Events</span>
-      </button>
-
-      <button class="pill pill-grey" type="submit" onClick={submit}>
-        <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
+      </a>
+    
+      <a class="pill pill-grey" href="/inbox">
         <span>Inbox</span>
-      </button>
-
-      <a class="pill pill-grey profile-settings" href="/profile">
-        <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
+      </a>
+    
+      <a class="pill pill-grey" href="/profile">
         <span>Profile Settings</span>
       </a>
-      <button class="pill pill-grey log-out" type="submit" onClick={submit}>
-        <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
+    
+      <button class="pill pill-grey" type="submit" onClick={submit}>
         <span>Log Out</span>
       </button>
     </div>
