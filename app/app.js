@@ -32,25 +32,28 @@ app.engine("html", ejs.renderFile);
 
 passport.serializeUser((user, done) => {
 	done(null, {
-		email: user.email,
+		user_id: user.user_id,
+    email: user.email,
 		displayName: user.display_name,
 		notificationSetting: user.notification_setting,
 	});
 });
-passport.deserializeUser(async (user, done) => {
-	// Fetch user from db
-	try {
-		const { rows } = await pool.query(
-			`select user_id, email from users where email = $1`,
-			[user.email]
-		);
 
-		return done(null, rows[0]);
-	} catch (error) {
-		console.error("Error in deserializeUser:", error);
-		return done(error);
-	}
+passport.deserializeUser(async (user, done) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT user_id, email, display_name, notification_setting
+       FROM users WHERE email = $1`,
+      [user.email]
+    );
+    if (!rows.length) return done(null, false);
+    return done(null, rows[0]);
+  } catch (error) {
+    console.error("Error in deserializeUser:", error);
+    return done(error);
+  }
 });
+
 
 // --- Auth stub (double check) ---
 const authMiddleware = (_req, _res, next) => next();
@@ -66,6 +69,11 @@ const isUUID = (s) =>
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
 		s
 	);
+
+function ensureAuth(req, res, next) {
+  if (req.isAuthenticated && req.isAuthenticated()) return next();
+  return res.redirect('/login');
+}
 
 app.get("/", (req, res) => {
 	if (req.session.passport && req.session.passport.user) {
@@ -927,6 +935,40 @@ app.put("/invitations/:id", async (req, res) => {
   } catch (e) {
     console.error("Error updating invitation:", e.message);
     res.status(500).json({ error: "Server error: Failed to update invitation" });
+  }
+});
+
+app.get('/profile', ensureAuth, (req, res) => {
+  res.render('dashboard', {
+    displayName: req.user.display_name,
+    email: req.user.email,
+    notification_setting: req.user.notification_setting,
+    panel: 'profile',
+    saved: req.query.saved === '1'
+  });
+});
+
+app.post('/profile/notification', ensureAuth, async (req, res) => {
+  try {
+    const pref = (req.body.notification_setting || '').toLowerCase();
+    if (!NOTIFICATION_SETTING.has(pref)) {
+      return res.status(400).send('Invalid notification preference.');
+    }
+
+    await pool.query(
+      'UPDATE users SET notification_setting = $1 WHERE user_id = $2',
+      [pref, req.user.user_id]
+    );
+
+    req.user.notification_setting = pref;
+    if (req.session?.passport?.user) {
+      req.session.passport.user.notification_setting = pref;
+    }
+
+    return res.redirect('/profile?saved=1');
+  } catch (err) {
+    console.error('Failed to update notification setting:', err);
+    return res.status(500).send('Could not update notification setting.');
   }
 });
 
