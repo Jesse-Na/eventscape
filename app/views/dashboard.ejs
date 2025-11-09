@@ -1,83 +1,113 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EventScape — Dashboard</title>
-    <link rel="stylesheet" href="globals.css" />
-    <link rel="stylesheet" href="style.css" />
-  </head>
 
-  <body>
-    <div class="event-dashboard" id="dashboard-root">
-      <!-- Base white sections -->
-      <img class="dashboard-left-white" src="dashboard-left-white-square.svg" alt="" aria-hidden="true" />
-      <img class="dashboard-main-white" src="dashboard-main-white-square.svg" alt="" aria-hidden="true" />
-      <img class="dashboard-stats" src="dashboard-stats-square.svg" alt="" aria-hidden="true" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EventScape — Dashboard</title>
+  <link rel="stylesheet" href="globals.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
 
-      <!-- Light grey content boxes -->
-      <img class="dashboard-light-grey-1" src="dashboard-light-grey-box.svg" alt="" aria-hidden="true" />
-      <img class="dashboard-light-grey-2" src="dashboard-light-grey-box.svg" alt="" aria-hidden="true" />
-      <img class="dashboard-light-grey-3" src="dashboard-light-grey-box.svg" alt="" aria-hidden="true" />
-      <img class="dashboard-light-grey-4" src="dashboard-light-grey-box.svg" alt="" aria-hidden="true" />
-
-      <!-- Stats header overlay -->
-      <img class="stats-header" src="stats-header.svg" alt="" aria-hidden="true" />
-      <div class="stat stat--upcoming">400</div>
-      <div class="stat stat--attended">400</div>
-      <div class="stat stat--notifications">400</div>
-
-      <!-- Sidebar text items -->
-      <div class="brand">
-        <img class="brand-logo" src="logo.svg" alt="EventScape logo" />
-        <span class="brand-text">EventScape</span>
-      </div>
-      <h2 class="greeting">Hi, <%= displayName %></h2>
-      <div class="sidebar-actions">
-        <button class="pill pill-grey" type="submit" onClick={submit}>
-          <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
-          <span>Event Dashboard</span>
-        </button>
-
-        <button class="pill pill-grey" type="submit" onClick={submit}>
-          <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
-          <span>RSVP’d Events</span>
-        </button>
-
-        <button class="pill pill-grey" type="submit" onClick={submit}>
-          <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
-          <span>Your Events</span>
-        </button>
-
-        <button class="pill pill-grey" type="submit" onClick={submit}>
-          <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
-          <span>Inbox</span>
-        </button>
-
-        <button class="pill pill-grey profile-settings" type="submit" onClick={submit}>
-          <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
-          <span>Profile Settings</span>
-        </button>
-        <button class="pill pill-grey log-out" type="submit" onClick={submit}>
-          <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
-          <span>Log Out</span>
-        </button>
-      </div>
+<body>
+  <div class="event-dashboard" id="dashboard-root">
+    <!-- Base white sections -->
+    <img class="dashboard-left-white" src="dashboard-left-white-square.svg" alt="" aria-hidden="true" />
+    <img class="dashboard-main-white" src="dashboard-main-white-square.svg" alt="" aria-hidden="true" />
+    <img class="dashboard-stats" src="dashboard-stats-square.svg" alt="" aria-hidden="true" />
+    <div class="dashboard" id="dashboard-main">
+      <% if (typeof panel !=='undefined' && panel==='profile' ) { %>
+        <section class="profile-panel">
+          <h2>Profile Settings</h2>
+          <div class="profile-row">
+            <label>Display name</label>
+            <div class="readonly-value">
+              <%= displayName %>
+            </div>
+          </div>
+          <div class="profile-row">
+            <label>Email</label>
+            <div class="readonly-value">
+              <%= email %>
+            </div>
+          </div>
+          <form id="notifForm" class="profile-row" method="POST" action="/profile/notification">
+            <label for="notification_setting">Notifications</label>
+            <select id="notification_setting" name="notification_setting"
+              onchange="document.getElementById('notifForm').submit()">
+              <option value="none" <%=notification_setting==='none' ? 'selected' : '' %>>None</option>
+              <option value="email" <%=notification_setting==='email' ? 'selected' : '' %>>Email</option>
+              <option value="in_app" <%=notification_setting==='in_app' ? 'selected' : '' %>>In-app</option>
+              <option value="all" <%=notification_setting==='all' ? 'selected' : '' %>>All</option>
+            </select>
+          </form>
+          <% if (saved) { %>
+            <div class="profile-saved">Settings saved ✔</div>
+            <% } %>
+        </section>
+        <% } %>
     </div>
-    <script>
-      window.addEventListener("load", function () {
-        const greeting = document.querySelector(".greeting");
-        if (!greeting) return;
 
-        const maxWidth = 255; 
-        let fontSize = 20;   
-        while (greeting.scrollWidth > maxWidth && fontSize > 10) {
-          fontSize -= 0.5;
-          greeting.style.fontSize = fontSize + "px";
-        }
-        greeting.style.width = maxWidth + "px";
-        greeting.style.textAlign = "center";
-      });
-    </script>
-  </body>
+    <!-- Light grey content boxes -->
+    <img class="dashboard-light-grey-1" src="dashboard-light-grey-box.svg" alt="" aria-hidden="true" />
+    <img class="dashboard-light-grey-2" src="dashboard-light-grey-box.svg" alt="" aria-hidden="true" />
+    <img class="dashboard-light-grey-3" src="dashboard-light-grey-box.svg" alt="" aria-hidden="true" />
+    <img class="dashboard-light-grey-4" src="dashboard-light-grey-box.svg" alt="" aria-hidden="true" />
+
+    <!-- Stats header overlay -->
+    <img class="stats-header" src="stats-header.svg" alt="" aria-hidden="true" />
+    <div class="stat stat--upcoming">400</div>
+    <div class="stat stat--attended">400</div>
+    <div class="stat stat--notifications">400</div>
+
+    <!-- Sidebar text items -->
+    <div class="brand">
+      <img class="brand-logo" src="logo.svg" alt="EventScape logo" />
+      <span class="brand-text">EventScape</span>
+    </div>
+    <h2 class="greeting">Hi, <%= displayName %>
+    </h2>
+    <div class="sidebar-actions">
+      <a class="pill pill-grey" href="/events">
+        <span>Event Dashboard</span>
+      </a>
+    
+      <a class="pill pill-grey" href="/rsvp">
+        <span>RSVP’d Events</span>
+      </a>
+    
+      <a class="pill pill-grey" href="/your-events">
+        <span>Your Events</span>
+      </a>
+    
+      <a class="pill pill-grey" href="/inbox">
+        <span>Inbox</span>
+      </a>
+    
+      <a class="pill pill-grey" href="/profile">
+        <span>Profile Settings</span>
+      </a>
+    
+      <button class="pill pill-grey" type="submit" onClick={submit}>
+        <span>Log Out</span>
+      </button>
+    </div>
+  </div>
+  <script>
+    window.addEventListener("load", function () {
+      const greeting = document.querySelector(".greeting");
+      if (!greeting) return;
+
+      const maxWidth = 255;
+      let fontSize = 20;
+      while (greeting.scrollWidth > maxWidth && fontSize > 10) {
+        fontSize -= 0.5;
+        greeting.style.fontSize = fontSize + "px";
+      }
+      greeting.style.width = maxWidth + "px";
+      greeting.style.textAlign = "center";
+    });
+  </script>
+</body>
+
 </html>

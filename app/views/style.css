@@ -552,7 +552,6 @@ button.sign-up-link:active {
 }
 
 /* ------------------------- Dashboard -------------------------------------------- */
-
 .event-dashboard {
   background-color: #f0f1f5;
   overflow: hidden;
@@ -633,49 +632,65 @@ button.sign-up-link:active {
   position: absolute;
   top: 40%;
   left: 0;
-  width: 255px;              /* match sidebar width */
-  transform: translateY(-65%);
+  width: 255px;             
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  align-items: center;       /* center buttons horizontally */
-  justify-content: center;   /* center buttons vertically */
+  align-items: center;      
+  justify-content: center;  
   gap: 20px;
 }
 
-
-.event-dashboard .pill {
+.event-dashboard .sidebar-actions .pill,
+.event-dashboard .sidebar-actions .pill:link,
+.event-dashboard .sidebar-actions .pill:visited {
+  display: grid;
+  place-items: center;
+  width: 240px;
+  height: 56px;
   position: relative;
-  display: block;
-  width: 200px;
-  height: 50px;
+  isolation: isolate;
   text-decoration: none;
-  color: #000000;
+  color: #000;
   font-family: "Poppins-SemiBold", Helvetica;
   font-weight: 600;
   font-size: 16px;
   letter-spacing: 0.16px;
-  line-height: normal;
+  border-radius: 999px;
+  background: #ECECEC; 
 }
 
-.event-dashboard .pill .pill-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.event-dashboard .pill span {
-  position: absolute;
-  inset: 0;
+.event-dashboard .sidebar-actions button.pill {
+  all: unset;                    
   display: grid;
   place-items: center;
+  width: 240px;
+  height: 56px;
+  border-radius: 999px;
+  background: #ECECEC;
+  font-family: "Poppins-SemiBold", Helvetica;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.16px;
+  color: #000;
+  cursor: pointer;
+  position: relative;
+  isolation: isolate;
+}
+
+.event-dashboard .sidebar-actions .pill span {
+  position: relative;
   z-index: 2;
   font-weight: 600;
 }
 
+.event-dashboard .sidebar-actions .pill:hover {
+  transform: translateY(-1px);
+  transition: transform 0.1s ease-in-out;
+}
+.event-dashboard .sidebar-actions .pill:active {
+  transform: translateY(0);
+}
 
 .event-dashboard .brand {
   position: absolute;
@@ -720,4 +735,76 @@ button.sign-up-link:active {
 
 .event-dashboard img {
   -webkit-user-drag: none;
+}
+
+.event-dashboard .profile-panel {
+  position: absolute;
+  top: 200px;                           
+  left: calc(50% - 290px);           
+  width: 800px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 40px 60px;
+  z-index: 5;
+  font-family: "Poppins", Helvetica, sans-serif;
+}
+
+.event-dashboard .profile-panel h2 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  color: #000;
+}
+
+/* Profile rows (Display name, Email, Notification setting) */
+.event-dashboard .profile-panel .profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.event-dashboard .profile-panel .profile-row label {
+  flex: 0 0 200px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+}
+
+.event-dashboard .profile-panel .profile-row .readonly-value {
+  flex: 1;
+  padding: 10px 14px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #111;
+  border: 1px solid #e0e0e0;
+}
+
+.event-dashboard .profile-panel select {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: 16px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.event-dashboard .profile-panel select:hover {
+  border-color: #888;
+}
+
+.event-dashboard .profile-panel .profile-saved {
+  margin-top: 20px;
+  background: #e6ffe6;
+  border: 1px solid #b2e0b2;
+  color: #256b25;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-align: center;
+  width: fit-content;
 }
