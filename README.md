@@ -42,7 +42,7 @@
     -   To use your own Docker account, replace `sodiumna11` with your username and update `overlays/prod/app-deployment.yaml` accordingly.
 -   Deploy the cluster to DigitalOcean `kubectl apply -k overlays/prod`
 -   Wait until all pods are ready `kubectl get pods`
--   Run `kubectl get services` to find out the external IP of the node-app. Copy the IP and paste it into a browser (e.g. http://209.38.2.115).
+-   Run `kubectl get services` to find out the external IP of the node-app. Copy the IP and paste it into a browser (e.g. http://159.203.54.195).
 -   To remove the current deployment, run `kubectl delete -k overlays/prod`
 
 ### Rolling updates
