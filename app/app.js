@@ -175,6 +175,22 @@ app.get("/post-register", (_req, res) => {
 	res.render("post-register");
 });
 
+app.get("/logout", (req, res, next) => {
+  req.logout((err) => {
+    if (err) {
+      console.error("Logout error: ", err);
+      return next(err);
+    }
+    req.session.destroy((errSession) => { 
+      if (errSession) {
+        console.error("Session destroy error: ", err);
+      }
+      res.clearCookie("connect.sid"); //remove session ID from browser
+      return res.redirect("/main");
+    })
+  })
+});
+
 // --- Health/DB utilities ---
 app.get("/status", (_req, res) => res.status(200).json({ status: "UP" }));
 
