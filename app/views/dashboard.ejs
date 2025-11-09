@@ -58,10 +58,12 @@
           <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
           <span>Profile Settings</span>
         </button>
-        <button class="pill pill-grey log-out" type="submit" onClick={submit}>
-          <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
-          <span>Log Out</span>
-        </button>
+        <form action="/logout" method="get">
+          <button class="pill pill-grey log-out" type="submit" onClick={submit}>
+            <img class="pill-bg" src="dashboard-light-grey-box.svg" alt="" />
+            <span>Log Out</span>
+          </button>
+        </form>
       </div>
     </div>
     <script>
