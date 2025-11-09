@@ -389,7 +389,7 @@ app.post("/events", async (req, res) => {
 	}
 });
 
-app.get("/events", async (_req, res) => {
+app.get("/api/events", async (_req, res) => {
 	try {
 		const q = `
       SELECT e.event_id, e.title, e.location, e.start_time, e.end_time, e.visibility,
@@ -953,6 +953,29 @@ app.post('/profile/notification', ensureAuth, async (req, res) => {
   } catch (err) {
     console.error('Failed to update notification setting:', err);
     return res.status(500).send('Could not update notification setting.');
+  }
+});
+
+app.get("/events", ensureAuth, async (req, res) => {
+  try {
+    const q = `
+      SELECT event_id, title, location, start_time, end_time, capacity
+      FROM events
+      WHERE visibility = 'public'
+        AND start_time >= NOW()
+      ORDER BY start_time ASC
+      LIMIT 200;
+    `;
+    const { rows } = await pool.query(q);
+
+    res.render("dashboard", {
+      panel: "events",
+      events: rows,
+      displayName: req.user.display_name
+    });
+  } catch (e) {
+    console.error("Failed to render Event Dashboard:", e.message);
+    res.status(500).send("Could not load events.");
   }
 });
 
