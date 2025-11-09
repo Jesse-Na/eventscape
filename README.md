@@ -45,6 +45,15 @@
 -   Run `kubectl get services` to find out the external IP of the node-app. Copy the IP and paste it into a browser (e.g. http://209.38.2.115).
 -   To remove the current deployment, run `kubectl delete -k overlays/prod`
 
+### Rolling updates
+
+-   To apply an update to the Kubernetes deployment, simply deploy the cluster again using `kubectl apply -k overlays/prod`
+-   To apply a Docker image (aka an app) update
+    -   Start by building the docker image again `docker buildx build --platform linux/amd64 -t eventscape-app:amd64 .`
+    -   Then tag and push the image `docker tag eventscape-app:amd64 sodiumna11/eventscape-app` and `docker push sodiumna11/eventscape-app`
+    -   Then run `kubectl rollout restart deployment/node-app`
+    -   Wait until the new pods are ready `kubectl get pods`
+
 ### Deploy digital monitoring agent
 
 -   Follow this [guide](https://docs.digitalocean.com/products/kubernetes/how-to/monitor-advanced/)
