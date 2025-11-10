@@ -808,3 +808,51 @@ button.sign-up-link:active {
   text-align: center;
   width: fit-content;
 }
+
+.event-dashboard .events-panel {
+  position: absolute;
+  top: 180px;
+  left: calc(50% - 340px);
+  width: 900px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 28px 32px;
+  z-index: 5;
+}
+
+.event-dashboard .events-panel h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.event-dashboard .events-empty {
+  padding: 16px;
+  border-radius: 8px;
+  background: #f5f5f7;
+  color: #444;
+}
+
+.event-dashboard .events-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.event-dashboard .events-table th,
+.event-dashboard .events-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.event-dashboard .events-table thead th {
+  font-weight: 700;
+  color: #222;
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.event-dashboard .events-table tbody tr:hover {
+  background: #fafafa;
+}
