@@ -34,9 +34,14 @@ spec:
                         valueFrom:
                             secretKeyRef:
                                 name: secrets
-                                key: PASSWORD
+                                key: DB_PASSWORD
                       - name: DB_NAME
                         value: "postgres"
+                      - name: SESSION_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                name: secrets
+                                key: SESSION_SECRET
                   readinessProbe:
                       httpGet:
                           path: /status
