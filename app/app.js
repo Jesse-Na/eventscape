@@ -31,26 +31,29 @@ app.set("view engine", "ejs");
 app.engine("html", ejs.renderFile);
 
 passport.serializeUser((user, done) => {
-	done(null, {
-		email: user.email,
-		displayName: user.display_name,
-		notificationSetting: user.notification_setting,
-	});
+  done(null, {
+    user_id: user.user_id,
+    email: user.email,
+    display_name: user.display_name,
+    notification_setting: user.notification_setting,
+  });
 });
-passport.deserializeUser(async (user, done) => {
-	// Fetch user from db
-	try {
-		const { rows } = await pool.query(
-			`select user_id, email from users where email = $1`,
-			[user.email]
-		);
 
-		return done(null, rows[0]);
-	} catch (error) {
-		console.error("Error in deserializeUser:", error);
-		return done(error);
-	}
+passport.deserializeUser(async (user, done) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT user_id, email, display_name, notification_setting
+       FROM users WHERE email = $1`,
+      [user.email]
+    );
+    if (!rows.length) return done(null, false);
+    return done(null, rows[0]);
+  } catch (error) {
+    console.error("Error in deserializeUser:", error);
+    return done(error);
+  }
 });
+
 
 // --- Auth stub (double check) ---
 const authMiddleware = (req, res, next) => {
@@ -83,6 +86,11 @@ const isUUID = (s) =>
 		s
 	);
 
+function ensureAuth(req, res, next) {
+  if (req.isAuthenticated && req.isAuthenticated()) return next();
+  return res.redirect('/login');
+}
+
 app.get("/", (req, res) => {
 	if (req.session.passport && req.session.passport.user) {
 		const email = req.session.passport.user.email;
@@ -96,12 +104,10 @@ app.get("/main", (req, res) => {
 });
 
 app.get("/dashboard", (req, res) => {
-	if (req.session.passport && req.session.passport.user) {
-		const displayName = req.session.passport.user.displayName;
-		return res.render("dashboard", { displayName });
-	}
-
-	return res.redirect("/login");
+  if (req.session.passport && req.session.passport.user) {
+    return res.redirect("/events");
+  }
+  return res.redirect("/login");
 });
 
 app.get("/login", (req, res) => {
@@ -181,6 +187,22 @@ app.post("/register", async (req, res) => {
 
 app.get("/post-register", (_req, res) => {
 	res.render("post-register");
+});
+
+app.get("/logout", (req, res, next) => {
+  req.logout((err) => {
+    if (err) {
+      console.error("Logout error: ", err);
+      return next(err);
+    }
+    req.session.destroy((errSession) => { 
+      if (errSession) {
+        console.error("Session destroy error: ", err);
+      }
+      res.clearCookie("connect.sid"); //remove session ID from browser
+      return res.redirect("/main");
+    })
+  })
 });
 
 // --- Health/DB utilities ---
@@ -419,7 +441,7 @@ app.post("/events", async (req, res) => {
 	}
 });
 
-app.get("/events", async (_req, res) => {
+app.get("/api/events", async (_req, res) => {
 	try {
 		const q = `
       SELECT e.event_id, e.title, e.location, e.start_time, e.end_time, e.visibility,
@@ -1031,6 +1053,63 @@ app.put("/invitations/:id", async (req, res) => {
 			error: "Server error: Failed to update invitation",
 		});
 	}
+});
+
+app.get('/profile', ensureAuth, (req, res) => {
+  res.render('dashboard', {
+    displayName: req.user.display_name,
+    email: req.user.email,
+    notification_setting: req.user.notification_setting,
+    panel: 'profile',
+    saved: req.query.saved === '1'
+  });
+});
+
+app.post('/profile/notification', ensureAuth, async (req, res) => {
+  try {
+    const pref = (req.body.notification_setting || '').toLowerCase();
+    if (!NOTIFICATION_SETTING.has(pref)) {
+      return res.status(400).send('Invalid notification preference.');
+    }
+
+    await pool.query(
+      'UPDATE users SET notification_setting = $1 WHERE user_id = $2',
+      [pref, req.user.user_id]
+    );
+
+    req.user.notification_setting = pref;
+    if (req.session?.passport?.user) {
+      req.session.passport.user.notification_setting = pref;
+    }
+
+    return res.redirect('/profile?saved=1');
+  } catch (err) {
+    console.error('Failed to update notification setting:', err);
+    return res.status(500).send('Could not update notification setting.');
+  }
+});
+
+app.get("/events", ensureAuth, async (req, res) => {
+  try {
+    const q = `
+      SELECT event_id, title, location, start_time, end_time, capacity
+      FROM events
+      WHERE visibility = 'public'
+        AND start_time >= NOW()
+      ORDER BY start_time ASC
+      LIMIT 200;
+    `;
+    const { rows } = await pool.query(q);
+
+    res.render("dashboard", {
+      panel: "events",
+      events: rows,
+      displayName: req.user.display_name
+    });
+  } catch (e) {
+    console.error("Failed to render Event Dashboard:", e.message);
+    res.status(500).send("Could not load events.");
+  }
 });
 
 // --- Start server & verify DB connectivity once ---
