@@ -87,10 +87,70 @@ app.get("/main", (req, res) => {
 	res.redirect("/");
 });
 
-app.get("/dashboard", (req, res) => {
+app.get("/dashboard", async (req, res) => {
 	if (req.session.passport && req.session.passport.user) {
 		const displayName = req.session.passport.user.displayName;
-		return res.render("dashboard", { displayName });
+
+    let upcomingCount = "-";
+    let attendedCount = "-";
+    let notificationCount = "-";
+
+    try {
+      //Fetch number of upcoming events for user
+      //Sum of future events user is hosting + future events user is RSVPed as 'going'
+      const upcomingHostedResult = await pool.query(
+        `SELECT COUNT(*) AS count FROM events 
+        WHERE host_id = $1
+        AND start_time >= CURRENT_TIMESTAMP`,
+        [req.session.passport.user.user_id]
+      );
+      const upcomingGoingResult = await pool.query(
+        `SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
+        WHERE r.user_id = $1
+        AND e.start_time >= CURRENT_TIMESTAMP
+        AND r.status = 'going'`,
+        [req.session.passport.user.user_id]
+      );
+      upcomingCount = parseInt(upcomingHostedResult.rows[0].count, 10) + parseInt(upcomingGoingResult.rows[0].count, 10);
+
+      //Fetch number of attended events for user
+      //Sum of past events user has hosted + past events user had RSVPed as 'going'
+      const attendedHostedResult = await pool.query(
+        `SELECT COUNT(*) AS count FROM events 
+        WHERE host_id = $1
+        AND start_time < CURRENT_TIMESTAMP`,
+        [req.session.passport.user.user_id]
+      );
+      const attendedGoingResult = await pool.query(
+        `SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
+        WHERE r.user_id = $1
+        AND e.start_time < CURRENT_TIMESTAMP
+        AND r.status = 'going'`,
+        [req.session.passport.user.user_id]
+      );
+      attendedCount = parseInt(attendedHostedResult.rows[0].count, 10) + parseInt(attendedGoingResult.rows[0].count, 10);
+
+      //Fetch number of unread notifications for user
+      const notifResult = await pool.query(
+        `SELECT COUNT(*) AS count FROM notifications 
+        WHERE user_id = $1
+        AND is_read = FALSE`,
+        [req.session.passport.user.user_id]
+      );
+      notificationCount = parseInt(notifResult.rows[0].count, 10);
+
+    } catch (err) {
+      console.error("Error fetching dashboard stats: ", err);
+    }
+
+		return res.render("dashboard", { 
+      displayName,
+      stats: {
+        upcoming: upcomingCount,
+        attended: attendedCount,
+        notifications: notificationCount,
+      }
+    });
 	}
 
 	return res.redirect("/login");

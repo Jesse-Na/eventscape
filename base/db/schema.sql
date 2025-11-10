@@ -26,6 +26,10 @@ DO $$ BEGIN
   CREATE TYPE notif_pref_enum AS ENUM ('none','email','in_app','all');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+DO $$ BEGIN
+  CREATE TYPE notif_type_enum AS ENUM ('announcement','invitation');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- ===== Tables =====
 
 -- Users
@@ -100,6 +104,22 @@ CREATE TABLE IF NOT EXISTS invitations (
 CREATE INDEX IF NOT EXISTS idx_invites_event  ON invitations(event_id);
 CREATE INDEX IF NOT EXISTS idx_invites_status ON invitations(status);
 CREATE INDEX IF NOT EXISTS idx_invites_email  ON invitations(recipient_email);
+
+-- Notifications
+CREATE TABLE IF NOT EXISTS notifications (
+  notification_id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id           UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  sent_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  title             TEXT,
+  message           TEXT,
+  is_read           BOOLEAN NOT NULL DEFAULT FALSE,
+  type              notif_type_enum NOT NULL,
+  announcement_id   UUID REFERENCES announcements(announcement_id) ON DELETE CASCADE,
+  invitation_id     UUID REFERENCES invitations(invitation_id) ON DELETE CASCADE,
+  CHECK ((announcement_id IS NOT NULL)::int + (invitation_id IS NOT NULL)::int <= 1)
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_sent_at ON notifications(sent_at DESC);
 
 -- ===== Triggers to keep updated_at fresh =====
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
