@@ -91,6 +91,12 @@ function ensureAuth(req, res, next) {
   return res.redirect('/login');
 }
 
+// --- Get Current User ---
+function getCurrentUser(req) {
+  return req.session.user ? req.session.user : null;
+}
+
+
 async function getDashboardStats(pool, userId) {
   let upcomingCount = "-";
   let attendedCount = "-";
@@ -1181,6 +1187,128 @@ app.get("/events", ensureAuth, async (req, res) => {
     res.status(500).send("Could not load events.");
   }
 });
+
+// ---------- YOUR EVENTS (UI + actions) ----------
+function requireOwner(userId) {
+  return async (eventId) => {
+    const r = await pool.query(
+      "SELECT 1 FROM events WHERE event_id = $1 AND host_id = $2",
+      [eventId, userId]
+    );
+    return r.rowCount > 0;
+  };
+}
+
+// Show only the events I host
+app.get("/your-events", ensureAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
+              e.capacity, e.visibility,
+              COALESCE(v.going_count,0) AS going_count,
+              COALESCE(v.interested_count,0) AS interested_count,
+              COALESCE(v.waitlisted_count,0) AS waitlisted_count
+       FROM events e
+       LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
+       WHERE e.host_id = $1
+       ORDER BY e.start_time DESC`,
+      [req.user.user_id]
+    );
+
+    return res.render("dashboard", {
+      panel: "your-events",
+      events: rows,
+      displayName: req.user.display_name,
+      email: req.user.email,
+      notification_setting: req.user.notification_setting,
+      saved: false,
+    });
+  } catch (e) {
+    console.error("GET /your-events failed:", e);
+    return res.status(500).send("Could not load your events.");
+  }
+});
+
+// Create a new event (simple form POST)
+app.post("/your-events", ensureAuth, async (req, res) => {
+  try {
+    const {
+      title,
+      location = null,
+      start_time,
+      end_time = null,
+      visibility = "public",
+      capacity = null,
+      content = null,
+    } = req.body || {};
+
+    if (!title || !start_time) {
+      return res.status(400).send("Title and start time are required.");
+    }
+
+    await pool.query(
+      `INSERT INTO events
+       (host_id, title, location, start_time, end_time, visibility, capacity, waitlist, content)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,false,$8)`,
+      [
+        req.user.user_id,
+        title,
+        location,
+        start_time,
+        end_time,
+        visibility,
+        capacity,
+        content,
+      ]
+    );
+    return res.redirect("/your-events");
+  } catch (e) {
+    console.error("POST /your-events failed:", e);
+    return res.status(500).send("Could not create event.");
+  }
+});
+
+// Post an announcement (owner-only), then return to Your Events
+app.post("/your-events/:id/announce", ensureAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content, scheduled_release = null } = req.body || {};
+    if (!content) return res.status(400).send("Announcement content required.");
+
+    const owns = await requireOwner(req.user.user_id)(id);
+    if (!owns) return res.status(403).send("Not your event.");
+
+    await pool.query(
+      `INSERT INTO announcements (event_id, host_id, content, scheduled_release)
+       VALUES ($1,$2,$3,$4)`,
+      [id, req.user.user_id, content, scheduled_release]
+    );
+    return res.redirect("/your-events");
+  } catch (e) {
+    console.error("POST /your-events/:id/announce failed:", e);
+    return res.status(500).send("Could not create announcement.");
+  }
+});
+
+// Delete an event (owner-only). Cascades to RSVPs/announcements/invitations via FKs.
+app.post("/your-events/:id/delete", ensureAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const r = await pool.query(
+      `DELETE FROM events WHERE event_id = $1 AND host_id = $2`,
+      [id, req.user.user_id]
+    );
+    if (!r.rowCount) return res.status(403).send("Not your event.");
+    return res.redirect("/your-events");
+  } catch (e) {
+    console.error("POST /your-events/:id/delete failed:", e);
+    return res.status(500).send("Could not delete event.");
+  }
+});
+
+
+
+
 
 app.get("/inbox", ensureAuth, async (req, res) => {
   const userId = req.user.user_id;
