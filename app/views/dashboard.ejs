@@ -17,11 +17,9 @@
     <img class="dashboard-stats" src="dashboard-stats-square.svg" alt="" aria-hidden="true" />
     <div class="dashboard" id="dashboard-main">
       <div class="dashboard" id="dashboard-main">
-        <%
-          var _panel  = (typeof panel !== 'undefined') ? panel.trim() : 'profile';
-          var _events = events || [];
-          var hasEvents = Array.isArray(_events) && _events.length > 0;
-        %>
+        <% var _panel=(typeof panel !=='undefined' ) ? panel.trim() : 'profile' ; var _events=(typeof events
+          !=='undefined' && Array.isArray(events)) ? events : []; var hasEvents=_events.length> 0;
+          %>
 
           <% if (_panel==='events' ) { %>
             <section class="events-panel">
@@ -84,15 +82,18 @@
                 </div>
 
                 <form id="notifForm" class="profile-row" method="POST" action="/profile/notification">
-                  <label for="notification_setting">Notification preference</label>
-                  <select id="notification_setting" name="notification_setting">
-                    <option value="all" <%=notification_setting==='all' ? 'selected' : '' %>>All</option>
-                    <option value="email" <%=notification_setting==='email' ? 'selected' : '' %>>Email only</option>
-                    <option value="in_app" <%=notification_setting==='in_app' ? 'selected' : '' %>>In-app only</option>
+                  <label for="notification_setting">Notifications</label>
+                  <select id="notification_setting" name="notification_setting"
+                    onchange="document.getElementById('notifForm').submit()">
                     <option value="none" <%=notification_setting==='none' ? 'selected' : '' %>>None</option>
+                    <option value="email" <%=notification_setting==='email' ? 'selected' : '' %>>Email</option>
+                    <option value="in_app" <%=notification_setting==='in_app' ? 'selected' : '' %>>In-app</option>
+                    <option value="all" <%=notification_setting==='all' ? 'selected' : '' %>>All</option>
                   </select>
-                  <button type="submit">Save</button>
                 </form>
+                <% if (saved) { %>
+                  <div class="profile-saved">Settings saved ✔</div>
+                  <% } %>
               </section>
               <% } %>
       </div>
