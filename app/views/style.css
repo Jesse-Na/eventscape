@@ -856,3 +856,72 @@ button.sign-up-link:active {
 .event-dashboard .events-table tbody tr:hover {
   background: #fafafa;
 }
+
+
+/* ----- Your Events tables: layout + controls ----- */
+.event-dashboard .events-table { 
+  table-layout: fixed;            /* aligns columns nicely */
+}
+
+.event-dashboard .events-table td form.inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Inputs/selects inside table cells */
+.event-dashboard .events-table td input,
+.event-dashboard .events-table td select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cfd6dd;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+/* Buttons in table cells */
+.event-dashboard .events-table td button {
+  font: inherit;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #cfd6dd;
+  background: #f7f9fb;
+  cursor: pointer;
+}
+.event-dashboard .events-table td button:hover { background: #eef3f8; }
+.event-dashboard .events-table td button.danger {
+  background: #ffe9e9;
+  border-color: #ffb7b7;
+  color: #a00;
+}
+
+/* Separate create-new table so it lines up with the list */
+.event-dashboard .events-table.create-table { 
+  margin-top: 12px;
+}
+.event-dashboard .events-table.create-table input,
+.event-dashboard .events-table.create-table select {
+  width: 100%;
+}
+
+/* Stack announce input over its button, and avoid crowding with Edit */
+.event-dashboard .events-table td.announce-cell .announce-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.event-dashboard .events-table td.announce-cell input {
+  width: 100%;
+}
+.event-dashboard .events-table td.edit-cell .btn {
+  display: inline-block;
+  padding: 8px 12px;
+  border: 1px solid #cfd6dd;
+  border-radius: 8px;
+  background: #f7f9fb;
+}
+.event-dashboard .events-table td.edit-cell .btn:hover {
+  background: #eef3f8;
+}

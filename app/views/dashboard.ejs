@@ -62,98 +62,140 @@
                   <% } %>
             </section>
 
+            <!-- Code for your-events -->
             <% } else if (_panel==='your-events' ) { %>
+              
               <section class="events-panel">
                 <h2>Your Events</h2>
 
-                <% if (hasEvents) { %>
-                  <table class="events-table">
-                    <thead>
-                      <tr>
-                        <th>Title</th>
-                        <th>Location</th>
-                        <th>Start Time</th>
-                        <th>End Time</th>
-                        <th>Capacity</th>
-                        <th>Going</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% _events.forEach(function(e){ %>
+                <table class="events-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Location</th>
+                      <th>Start Time</th>
+                      <th>End Time</th>
+                      <th>Capacity</th>
+                      <th>Going</th>
+                      <th>Announce</th>
+                      <th>Edit</th>
+                      <th>Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% if (hasEvents) { _events.forEach(function(e){ 
+                        var editing = (typeof editingId !== 'undefined' && editingId && (editingId === e.event_id));
+                    %>
+                      <% if (!editing) { %>
+                        <!-- NORMAL ROW -->
                         <tr>
-                          <td>
-                            <%= e.title %>
-                          </td>
-                          <td>
-                            <%= e.location || '—' %>
-                          </td>
-                          <td>
-                            <%= new Date(e.start_time).toLocaleString() %>
-                          </td>
-                          <td>
-                            <%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %>
-                          </td>
-                          <td>
-                            <%= (e.capacity===null || e.capacity===undefined) ? '—' : e.capacity %>
-                          </td>
-                          <td>
-                            <%= e.going_count || 0 %>
-                          </td>
-                          <td class="actions">
-                            <!-- inline announce form -->
-                            <form method="POST" action="/your-events/<%= e.event_id %>/announce" class="inline">
-                              <input name="content" type="text" placeholder="Announcement content" required />
-                              <button type="submit">Announce</button>
+                          <td><%= e.title %></td>
+                          <td><%= e.location || '—' %></td>
+                          <td><%= new Date(e.start_time).toLocaleString() %></td>
+                          <td><%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %></td>
+                          <td><%= (e.capacity ?? '—') %></td>
+                          <td><%= e.going_count %></td>
+
+                          <!-- Announce -->
+                          <td class="announce-cell">
+                            <form method="POST" action="/your-events/<%= e.event_id %>/announce">
+                              <div class=""announce-col">
+                                <input name="content" type="text" placeholder="Announcement content" required />
+                                <button type="submit">Announce</button>
+                              </div>
                             </form>
-                            <!-- delete -->
-                            <form method="POST" action="/your-events/<%= e.event_id %>/delete" class="inline"
-                              onsubmit="return confirm('Delete this event? This cannot be undone.');">
+                          </td>
+
+                          <!-- Edit -->
+                          <td class="edit-cell">
+                            <a class="btn" href="/your-events?edit=<%= e.event_id %>">Edit</a>
+                          </td>
+
+                          <!-- Delete -->
+                          <td>
+                            <form method="POST" action="/your-events/<%= e.event_id %>/delete"
+                                  onsubmit="return confirm('Delete this event? This cannot be undone.');">
                               <button type="submit" class="danger">Delete</button>
                             </form>
                           </td>
                         </tr>
-                        <% }); %>
-                    </tbody>
-                  </table>
-                  <% } else { %>
-                    <p class="no-events-msg">No upcoming events.</p>
-                    <% } %>
+                      <% } else { %>
+                        <!-- EDIT MODE ROW -->
+                        <% var formId = 'editForm-' + e.event_id; %>
+                        <form id="<%= formId %>" method="POST" action="/your-events/<%= e.event_id %>/update"></form>
+                        <tr class="edit-row">
+                          <td><input form="<%= formId %>" name="title" value="<%- e.title %>" required /></td>
+                          <td><input form="<%= formId %>" name="location" value="<%- e.location || '' %>" /></td>
+                          <td><input form="<%= formId %>" type="datetime-local" name="start_time"
+                                    value="<%= new Date(e.start_time).toISOString().slice(0,16) %>" required /></td>
+                          <td><input form="<%= formId %>" type="datetime-local" name="end_time"
+                                    value="<%= e.end_time ? new Date(e.end_time).toISOString().slice(0,16) : '' %>" /></td>
+                          <td><input form="<%= formId %>" type="number" name="capacity" min="0"
+                                    value="<%= (e.capacity ?? '') %>" /></td>
+                          <td><%= e.going_count %></td>
 
-                  <hr />
-                  <h3>Create new event</h3>
-                  <form method="POST" action="/your-events" class="create-form">
-                    <div class="row">
-                      <label>Title</label>
-                      <input name="title" required />
-                    </div>
-                    <div class="row">
-                      <label>Location</label>
-                      <input name="location" />
-                    </div>
-                    <div class="row">
-                      <label>Start</label>
-                      <input type="datetime-local" name="start_time" required />
-                    </div>
-                    <div class="row">
-                      <label>End</label>
-                      <input type="datetime-local" name="end_time" />
-                    </div>
-                    <div class="row">
-                      <label>Visibility</label>
-                      <select name="visibility">
-                        <option value="public">public</option>
-                        <option value="private">private</option>
-                        <option value="unlisted">unlisted</option>
-                      </select>
-                    </div>
-                    <div class="row">
-                      <label>Capacity</label>
-                      <input type="number" name="capacity" min="0" />
-                    </div>
-                    <button type="submit">Create event</button>
-                  </form>
+                          <!-- Announce column stays empty in edit mode -->
+                          <td></td>
+
+                          <!-- Save / Cancel -->
+                          <td>
+                            <button form="<%= formId %>" type="submit">Save</button>
+                            <a class="btn secondary" href="/your-events">Cancel</a>
+                          </td>
+
+                          <!-- Delete -->
+                          <td>
+                            <form method="POST" action="/your-events/<%= e.event_id %>/delete"
+                                  onsubmit="return confirm('Delete this event? This cannot be undone.');">
+                              <button type="submit" class="danger">Delete</button>
+                            </form>
+                          </td>
+                        </tr>
+                      <% } %>
+                    <% }); } else { %>
+                      <tr><td colspan="9" class="no-events-msg">You haven’t created any events yet.</td></tr>
+                    <% } %>
+                  </tbody>
+                </table>
+
+                <hr />
+
+                <h3>Create new event</h3>
+                <form id="createForm" method="POST" action="/your-events"></form>
+
+                <table class="events-table create-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Location</th>
+                      <th>Start Time</th>
+                      <th>End Time</th>
+                      <th>Capacity</th>
+                      <th>Visibility</th>
+                      <th><!-- submit --></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input form="createForm" name="title" placeholder="Title" required /></td>
+                      <td><input form="createForm" name="location" placeholder="Location" /></td>
+                      <td><input form="createForm" type="datetime-local" name="start_time" required /></td>
+                      <td><input form="createForm" type="datetime-local" name="end_time" /></td>
+                      <td><input form="createForm" type="number" name="capacity" min="0" placeholder="—" /></td>
+                      <td>
+                        <select form="createForm" name="visibility">
+                          <option value="public">public</option>
+                          <option value="private">private</option>
+                          <option value="unlisted">unlisted</option>
+                        </select>
+                      </td>
+                      <td><button form="createForm" type="submit">Create event</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+
               </section>
+
 
             <% } else if (_panel==='profile' ) { %>
               <section class="profile-panel">

@@ -1117,6 +1117,92 @@ app.post("/your-events/:id/delete", ensureAuth, async (req, res) => {
   }
 });
 
+// Allow the list route to know which row is in "edit mode"
+app.get("/your-events", ensureAuth, async (req, res) => {
+  try {
+    const editingId = req.query.edit || null;
+
+    const q = `
+      SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
+             e.capacity, e.visibility,
+             COALESCE(v.going_count,0) AS going_count,
+             COALESCE(v.interested_count,0) AS interested_count,
+             COALESCE(v.waitlisted_count,0) AS waitlisted_count
+      FROM events e
+      LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
+      WHERE e.host_id = $1
+      ORDER BY e.start_time DESC`;
+    const { rows } = await pool.query(q, [req.user.user_id]);
+
+    return res.render("dashboard", {
+      panel: "your-events",
+      events: rows,
+      editingId, 
+      displayName: req.user.display_name,
+      email: req.user.email,
+      notification_setting: req.user.notification_setting,
+      saved: false,
+    });
+  } catch (e) {
+    console.error("GET /your-events failed:", e);
+    return res.status(500).send("Could not load your events.");
+  }
+});
+
+// Update (edit) an event I own
+app.post("/your-events/:id/update", ensureAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      location = null,
+      start_time,
+      end_time = null,
+      visibility = "public",
+      capacity = null,
+      content = null, 
+    } = req.body || {};
+
+    // must own it
+    const owns = await pool.query(
+      "SELECT 1 FROM events WHERE event_id=$1 AND host_id=$2",
+      [id, req.user.user_id]
+    );
+    if (!owns.rowCount) return res.status(403).send("Not your event.");
+
+    if (!title || !start_time) {
+      return res.status(400).send("Title and start time are required.");
+    }
+
+    await pool.query(
+      `UPDATE events
+         SET title=$1,
+             location=$2,
+             start_time=$3,
+             end_time=$4,
+             visibility=$5,
+             capacity=$6,
+             content=$7
+       WHERE event_id=$8 AND host_id=$9`,
+      [
+        title,
+        location,
+        start_time,
+        end_time,
+        visibility,
+        (capacity === "" ? null : Number.isFinite(+capacity) ? +capacity : null),
+        content,
+        id,
+        req.user.user_id,
+      ]
+    );
+
+    return res.redirect("/your-events");
+  } catch (e) {
+    console.error("POST /your-events/:id/update failed:", e);
+    return res.status(500).send("Could not update event.");
+  }
+});
 
 
 
