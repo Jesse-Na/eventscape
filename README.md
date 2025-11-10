@@ -61,3 +61,4 @@
 ### Testing the deployment
 
 -   To test monitoring alerts and the deployment's performance, install k6 and do `k6 run tests/script.js`
+    -   Update the file with the correct ip and user credentials
