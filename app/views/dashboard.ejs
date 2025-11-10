@@ -62,6 +62,99 @@
                   <% } %>
             </section>
 
+            <% } else if (_panel==='your-events' ) { %>
+              <section class="events-panel">
+                <h2>Your Events</h2>
+
+                <% if (hasEvents) { %>
+                  <table class="events-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Location</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Capacity</th>
+                        <th>Going</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% _events.forEach(function(e){ %>
+                        <tr>
+                          <td>
+                            <%= e.title %>
+                          </td>
+                          <td>
+                            <%= e.location || '—' %>
+                          </td>
+                          <td>
+                            <%= new Date(e.start_time).toLocaleString() %>
+                          </td>
+                          <td>
+                            <%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %>
+                          </td>
+                          <td>
+                            <%= (e.capacity===null || e.capacity===undefined) ? '—' : e.capacity %>
+                          </td>
+                          <td>
+                            <%= e.going_count || 0 %>
+                          </td>
+                          <td class="actions">
+                            <!-- inline announce form -->
+                            <form method="POST" action="/your-events/<%= e.event_id %>/announce" class="inline">
+                              <input name="content" type="text" placeholder="Announcement content" required />
+                              <button type="submit">Announce</button>
+                            </form>
+                            <!-- delete -->
+                            <form method="POST" action="/your-events/<%= e.event_id %>/delete" class="inline"
+                              onsubmit="return confirm('Delete this event? This cannot be undone.');">
+                              <button type="submit" class="danger">Delete</button>
+                            </form>
+                          </td>
+                        </tr>
+                        <% }); %>
+                    </tbody>
+                  </table>
+                  <% } else { %>
+                    <p class="no-events-msg">No upcoming events.</p>
+                    <% } %>
+
+                  <hr />
+                  <h3>Create new event</h3>
+                  <form method="POST" action="/your-events" class="create-form">
+                    <div class="row">
+                      <label>Title</label>
+                      <input name="title" required />
+                    </div>
+                    <div class="row">
+                      <label>Location</label>
+                      <input name="location" />
+                    </div>
+                    <div class="row">
+                      <label>Start</label>
+                      <input type="datetime-local" name="start_time" required />
+                    </div>
+                    <div class="row">
+                      <label>End</label>
+                      <input type="datetime-local" name="end_time" />
+                    </div>
+                    <div class="row">
+                      <label>Visibility</label>
+                      <select name="visibility">
+                        <option value="public">public</option>
+                        <option value="private">private</option>
+                        <option value="unlisted">unlisted</option>
+                      </select>
+                    </div>
+                    <div class="row">
+                      <label>Capacity</label>
+                      <input type="number" name="capacity" min="0" />
+                    </div>
+                    <button type="submit">Create event</button>
+                  </form>
+              </section>
+
             <% } else if (_panel==='profile' ) { %>
               <section class="profile-panel">
                 <h2>Profile Settings</h2>
