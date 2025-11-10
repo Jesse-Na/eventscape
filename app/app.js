@@ -31,12 +31,12 @@ app.set("view engine", "ejs");
 app.engine("html", ejs.renderFile);
 
 passport.serializeUser((user, done) => {
-	done(null, {
-		user_id: user.user_id,
+  done(null, {
+    user_id: user.user_id,
     email: user.email,
-		displayName: user.display_name,
-		notificationSetting: user.notification_setting,
-	});
+    display_name: user.display_name,
+    notification_setting: user.notification_setting,
+  });
 });
 
 passport.deserializeUser(async (user, done) => {
@@ -88,12 +88,10 @@ app.get("/main", (req, res) => {
 });
 
 app.get("/dashboard", (req, res) => {
-	if (req.session.passport && req.session.passport.user) {
-		const displayName = req.session.passport.user.displayName;
-		return res.render("dashboard", { displayName });
-	}
-
-	return res.redirect("/login");
+  if (req.session.passport && req.session.passport.user) {
+    return res.redirect("/events");
+  }
+  return res.redirect("/login");
 });
 
 app.get("/login", (req, res) => {
