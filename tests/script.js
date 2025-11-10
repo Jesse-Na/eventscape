@@ -4,8 +4,11 @@ import { check, sleep } from "k6";
 const ip = "159.203.54.195";
 
 export const options = {
-	vus: 10,
-	duration: "1m30s",
+	stages: [
+		{ duration: "3m", target: 10 },
+		{ duration: "3m", target: 20 },
+		{ duration: "3m", target: 0 },
+	],
 };
 
 export default function () {
