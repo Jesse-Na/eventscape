@@ -57,3 +57,7 @@
 ### Deploy digital monitoring agent
 
 -   Follow this [guide](https://docs.digitalocean.com/products/kubernetes/how-to/monitor-advanced/)
+
+### Testing the deployment
+
+-   To test monitoring alerts and the deployment's performance, install k6 and do `k6 run tests/script.js`
