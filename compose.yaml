@@ -29,6 +29,7 @@ services:
       DB_HOST: db
       DB_PORT: 5432
       SESSION_SECRET: eventscapesession
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
     networks:
       - app-network
     depends_on:

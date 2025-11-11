@@ -10,6 +10,9 @@ const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
+
 const app = express();
 
 app.use(
@@ -31,29 +34,28 @@ app.set("view engine", "ejs");
 app.engine("html", ejs.renderFile);
 
 passport.serializeUser((user, done) => {
-  done(null, {
-    user_id: user.user_id,
-    email: user.email,
-    display_name: user.display_name,
-    notification_setting: user.notification_setting,
-  });
+	done(null, {
+		user_id: user.user_id,
+		email: user.email,
+		display_name: user.display_name,
+		notification_setting: user.notification_setting,
+	});
 });
 
 passport.deserializeUser(async (user, done) => {
-  try {
-    const { rows } = await pool.query(
-      `SELECT user_id, email, display_name, notification_setting
+	try {
+		const { rows } = await pool.query(
+			`SELECT user_id, email, display_name, notification_setting
        FROM users WHERE email = $1`,
-      [user.email]
-    );
-    if (!rows.length) return done(null, false);
-    return done(null, rows[0]);
-  } catch (error) {
-    console.error("Error in deserializeUser:", error);
-    return done(error);
-  }
+			[user.email]
+		);
+		if (!rows.length) return done(null, false);
+		return done(null, rows[0]);
+	} catch (error) {
+		console.error("Error in deserializeUser:", error);
+		return done(error);
+	}
 });
-
 
 // --- Auth stub (double check) ---
 const authMiddleware = (req, res, next) => {
@@ -87,68 +89,71 @@ const isUUID = (s) =>
 	);
 
 function ensureAuth(req, res, next) {
-  if (req.isAuthenticated && req.isAuthenticated()) return next();
-  return res.redirect('/login');
+	if (req.isAuthenticated && req.isAuthenticated()) return next();
+	return res.redirect("/login");
 }
 
 async function getDashboardStats(pool, userId) {
-  let upcomingCount = "-";
-  let attendedCount = "-";
-  let notificationCount = "-";
+	let upcomingCount = "-";
+	let attendedCount = "-";
+	let notificationCount = "-";
 
-  try {
-    //Fetch number of upcoming events for user
-    //Sum of future events user is hosting + future events user is RSVPed as 'going'
-    const upcomingHostedResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM events 
+	try {
+		//Fetch number of upcoming events for user
+		//Sum of future events user is hosting + future events user is RSVPed as 'going'
+		const upcomingHostedResult = await pool.query(
+			`SELECT COUNT(*) AS count FROM events
       WHERE host_id = $1
       AND start_time >= CURRENT_TIMESTAMP`,
-      [userId]
-    );
-    const upcomingGoingResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
+			[userId]
+		);
+		const upcomingGoingResult = await pool.query(
+			`SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id
       WHERE r.user_id = $1
       AND e.start_time >= CURRENT_TIMESTAMP
       AND r.status = 'going'`,
-      [userId]
-    );
-    upcomingCount = parseInt(upcomingHostedResult.rows[0].count, 10) + parseInt(upcomingGoingResult.rows[0].count, 10);
+			[userId]
+		);
+		upcomingCount =
+			parseInt(upcomingHostedResult.rows[0].count, 10) +
+			parseInt(upcomingGoingResult.rows[0].count, 10);
 
-    //Fetch number of attended events for user
-    //Sum of past events user has hosted + past events user had RSVPed as 'going'
-    const attendedHostedResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM events 
+		//Fetch number of attended events for user
+		//Sum of past events user has hosted + past events user had RSVPed as 'going'
+		const attendedHostedResult = await pool.query(
+			`SELECT COUNT(*) AS count FROM events
       WHERE host_id = $1
       AND start_time < CURRENT_TIMESTAMP`,
-      [userId]
-    );
-    const attendedGoingResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
+			[userId]
+		);
+		const attendedGoingResult = await pool.query(
+			`SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id
       WHERE r.user_id = $1
       AND e.start_time < CURRENT_TIMESTAMP
       AND r.status = 'going'`,
-      [userId]
-    );
-    attendedCount = parseInt(attendedHostedResult.rows[0].count, 10) + parseInt(attendedGoingResult.rows[0].count, 10);
+			[userId]
+		);
+		attendedCount =
+			parseInt(attendedHostedResult.rows[0].count, 10) +
+			parseInt(attendedGoingResult.rows[0].count, 10);
 
-    //Fetch number of unread notifications for user
-    const notifResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM notifications 
+		//Fetch number of unread notifications for user
+		const notifResult = await pool.query(
+			`SELECT COUNT(*) AS count FROM notifications
       WHERE user_id = $1
       AND is_read = FALSE`,
-      [userId]
-    );
-    notificationCount = parseInt(notifResult.rows[0].count, 10);
+			[userId]
+		);
+		notificationCount = parseInt(notifResult.rows[0].count, 10);
+	} catch (err) {
+		console.error("Error fetching dashboard stats: ", err);
+	}
 
-  } catch (err) {
-    console.error("Error fetching dashboard stats: ", err);
-  }
-
-  return {
-    upcoming: upcomingCount,
-    attended: attendedCount,
-    notifications: notificationCount,
-  };
+	return {
+		upcoming: upcomingCount,
+		attended: attendedCount,
+		notifications: notificationCount,
+	};
 }
 
 app.get("/", (req, res) => {
@@ -164,10 +169,10 @@ app.get("/main", (req, res) => {
 });
 
 app.get("/dashboard", (req, res) => {
-  if (req.session.passport && req.session.passport.user) {
-    return res.redirect("/events");
-  }
-  return res.redirect("/login");
+	if (req.session.passport && req.session.passport.user) {
+		return res.redirect("/events");
+	}
+	return res.redirect("/login");
 });
 
 app.get("/login", (req, res) => {
@@ -236,6 +241,29 @@ app.post("/register", async (req, res) => {
 			[email, hashedPassword, displayName, notificationPref]
 		);
 
+		if (insertResult.rows.length === 0) {
+			return res
+				.status(500)
+				.render("register", { error: "Failed to create user" });
+		}
+
+		const msg = {
+			to: email,
+			from: "eventscape.team@gmail.com",
+			subject: "Thanks for signing up with EventScape!",
+			text: "Welcome to EventScape! We're excited to have you on board. Get ready to explore and create amazing events with us.",
+		};
+
+		sgMail
+			.send(msg)
+			.then((response) => {
+				console.log(response[0].statusCode);
+				console.log(response[0].headers);
+			})
+			.catch((error) => {
+				console.error(error);
+			});
+
 		return res.status(201).render("login", {
 			error: null,
 			email: email,
@@ -250,19 +278,19 @@ app.get("/post-register", (_req, res) => {
 });
 
 app.get("/logout", (req, res, next) => {
-  req.logout((err) => {
-    if (err) {
-      console.error("Logout error: ", err);
-      return next(err);
-    }
-    req.session.destroy((errSession) => { 
-      if (errSession) {
-        console.error("Session destroy error: ", err);
-      }
-      res.clearCookie("connect.sid"); //remove session ID from browser
-      return res.redirect("/main");
-    })
-  })
+	req.logout((err) => {
+		if (err) {
+			console.error("Logout error: ", err);
+			return next(err);
+		}
+		req.session.destroy((errSession) => {
+			if (errSession) {
+				console.error("Session destroy error: ", err);
+			}
+			res.clearCookie("connect.sid"); //remove session ID from browser
+			return res.redirect("/main");
+		});
+	});
 });
 
 // --- Health/DB utilities ---
@@ -1115,52 +1143,52 @@ app.put("/invitations/:id", async (req, res) => {
 	}
 });
 
-app.get('/profile', ensureAuth, async (req, res) => {
-  try {
-    const stats = await getDashboardStats(pool, req.user.user_id);
-    res.render('dashboard', {
-      displayName: req.user.display_name,
-      email: req.user.email,
-      notification_setting: req.user.notification_setting,
-      panel: 'profile',
-      saved: req.query.saved === '1',
-      stats,
-    });
-  } catch (e) {
-    console.error("Failed to render Profile Dashboard:", e.message);
-    res.status(500).send("Could not load profile.");
-  }
+app.get("/profile", ensureAuth, async (req, res) => {
+	try {
+		const stats = await getDashboardStats(pool, req.user.user_id);
+		res.render("dashboard", {
+			displayName: req.user.display_name,
+			email: req.user.email,
+			notification_setting: req.user.notification_setting,
+			panel: "profile",
+			saved: req.query.saved === "1",
+			stats,
+		});
+	} catch (e) {
+		console.error("Failed to render Profile Dashboard:", e.message);
+		res.status(500).send("Could not load profile.");
+	}
 });
 
-app.post('/profile/notification', ensureAuth, async (req, res) => {
-  try {
-    const pref = (req.body.notification_setting || '').toLowerCase();
-    if (!NOTIFICATION_SETTING.has(pref)) {
-      return res.status(400).send('Invalid notification preference.');
-    }
+app.post("/profile/notification", ensureAuth, async (req, res) => {
+	try {
+		const pref = (req.body.notification_setting || "").toLowerCase();
+		if (!NOTIFICATION_SETTING.has(pref)) {
+			return res.status(400).send("Invalid notification preference.");
+		}
 
-    await pool.query(
-      'UPDATE users SET notification_setting = $1 WHERE user_id = $2',
-      [pref, req.user.user_id]
-    );
+		await pool.query(
+			"UPDATE users SET notification_setting = $1 WHERE user_id = $2",
+			[pref, req.user.user_id]
+		);
 
-    req.user.notification_setting = pref;
-    if (req.session?.passport?.user) {
-      req.session.passport.user.notification_setting = pref;
-    }
+		req.user.notification_setting = pref;
+		if (req.session?.passport?.user) {
+			req.session.passport.user.notification_setting = pref;
+		}
 
-    return res.redirect('/profile?saved=1');
-  } catch (err) {
-    console.error('Failed to update notification setting:', err);
-    return res.status(500).send('Could not update notification setting.');
-  }
+		return res.redirect("/profile?saved=1");
+	} catch (err) {
+		console.error("Failed to update notification setting:", err);
+		return res.status(500).send("Could not update notification setting.");
+	}
 });
 
 app.get("/events", ensureAuth, async (req, res) => {
-  try {
-    const stats = await getDashboardStats(pool, req.user.user_id);
+	try {
+		const stats = await getDashboardStats(pool, req.user.user_id);
 
-    const q = `
+		const q = `
       SELECT event_id, title, location, start_time, end_time, capacity
       FROM events
       WHERE visibility = 'public'
@@ -1168,26 +1196,26 @@ app.get("/events", ensureAuth, async (req, res) => {
       ORDER BY start_time ASC
       LIMIT 200;
     `;
-    const { rows } = await pool.query(q);
+		const { rows } = await pool.query(q);
 
-    res.render("dashboard", {
-      panel: "events",
-      events: rows,
-      displayName: req.user.display_name,
-      stats,
-    });
-  } catch (e) {
-    console.error("Failed to render Event Dashboard:", e.message);
-    res.status(500).send("Could not load events.");
-  }
+		res.render("dashboard", {
+			panel: "events",
+			events: rows,
+			displayName: req.user.display_name,
+			stats,
+		});
+	} catch (e) {
+		console.error("Failed to render Event Dashboard:", e.message);
+		res.status(500).send("Could not load events.");
+	}
 });
 
 app.get("/inbox", ensureAuth, async (req, res) => {
-  const userId = req.user.user_id;
-  const stats = await getDashboardStats(pool, req.user.user_id);
-  try {
-    const { rows: announcements } = await pool.query(
-      `
+	const userId = req.user.user_id;
+	const stats = await getDashboardStats(pool, req.user.user_id);
+	try {
+		const { rows: announcements } = await pool.query(
+			`
       SELECT
         a.announcement_id,
         COALESCE(e.title, 'Announcement') AS announcement_title,   -- matches EJS
@@ -1201,11 +1229,11 @@ app.get("/inbox", ensureAuth, async (req, res) => {
         AND n.type   = 'announcement'
       ORDER BY a.created_at DESC
       `,
-      [userId]
-    );
+			[userId]
+		);
 
-    const { rows: invitations } = await pool.query(
-      `
+		const { rows: invitations } = await pool.query(
+			`
       SELECT
         e.event_id,
         e.title      AS event_title,   -- matches EJS
@@ -1221,29 +1249,29 @@ app.get("/inbox", ensureAuth, async (req, res) => {
         AND e.start_time >= NOW()
       ORDER BY e.start_time ASC
       `,
-      [userId]
-    );
+			[userId]
+		);
 
-    return res.render("dashboard", {
-      panel: "inbox",
-      announcements,
-      invitations,
-      displayName: req.user.display_name,
-      email: req.user.email,
-	  stats,
-    });
-  } catch (err) {
-    console.error("[GET /inbox] error:", err);
-    return res.status(500).send("Failed to load inbox");
-  }
+		return res.render("dashboard", {
+			panel: "inbox",
+			announcements,
+			invitations,
+			displayName: req.user.display_name,
+			email: req.user.email,
+			stats,
+		});
+	} catch (err) {
+		console.error("[GET /inbox] error:", err);
+		return res.status(500).send("Failed to load inbox");
+	}
 });
 
 app.get("/rsvpd", ensureAuth, async (req, res) => {
-  const userId = req.user.user_id;
-  const stats = await getDashboardStats(pool, req.user.user_id);
-  try {
-    const { rows: rsvpd } = await pool.query(
-      `
+	const userId = req.user.user_id;
+	const stats = await getDashboardStats(pool, req.user.user_id);
+	try {
+		const { rows: rsvpd } = await pool.query(
+			`
       SELECT
         r.rsvp_id,
         r.status     AS rsvp_status,   -- matches EJS
@@ -1258,22 +1286,21 @@ app.get("/rsvpd", ensureAuth, async (req, res) => {
       WHERE r.user_id = $1
       ORDER BY e.start_time ASC
       `,
-      [userId]
-    );
+			[userId]
+		);
 
-    return res.render("dashboard", {
-      panel: "rsvpd",
-      rsvpd,
-      displayName: req.user.display_name,
-      email: req.user.email,
-	  stats
-    });
-  } catch (err) {
-    console.error("[GET /rsvpd] error:", err);
-    return res.status(500).send("Failed to load RSVP’d events");
-  }
+		return res.render("dashboard", {
+			panel: "rsvpd",
+			rsvpd,
+			displayName: req.user.display_name,
+			email: req.user.email,
+			stats,
+		});
+	} catch (err) {
+		console.error("[GET /rsvpd] error:", err);
+		return res.status(500).send("Failed to load RSVP’d events");
+	}
 });
-
 
 // --- Start server & verify DB connectivity once ---
 const port = Number(process.env.PORT || 3000);

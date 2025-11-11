@@ -4,6 +4,7 @@ resources:
     - ../../base
 
 patchesStrategicMerge:
+    - secrets.yaml
     - db-pv.yaml
     - db-pvc.yaml
     - db-deployment.yaml
