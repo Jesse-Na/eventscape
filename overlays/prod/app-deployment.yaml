@@ -10,3 +10,10 @@ spec:
                 - name: eventscape-app
                   image: sodiumna11/eventscape-app:latest
                   imagePullPolicy: Always
+                  # resources:
+                  #     limits:
+                  #         memory: 512Mi
+                  #         cpu: 250m
+                  #     requests:
+                  #         memory: 256Mi
+                  #         cpu: 100m

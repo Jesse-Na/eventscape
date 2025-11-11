@@ -19,10 +19,16 @@
         <span class="brand-text">EventScape</span>
       </div>
       <h1><%= email %></h1>
+      <% if (!email){ %>
       <nav class="cta">
         <a class="pill pill-white" href="./login">Login</a>
         <a class="pill pill-white" href="./register">Register</a>
       </nav>
+      <% } else if (email) { %>
+      <nav class="cta">
+        <a class="pill pill-white" href="./dashboard">Dashboard</a>
+      </nav>
+      <% } %>
 
     </div>
   </div>

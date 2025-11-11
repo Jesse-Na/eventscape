@@ -1,6 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+    - secrets.yaml
     - db-pv.yaml
     - db-pvc.yaml
     - db-deployment.yaml
@@ -9,10 +10,10 @@ resources:
     - app-service.yaml
 
 configMapGenerator:
-  - name: postgres-cm
-    files:
-      - db/schema.sql
-      - db/seed.sql
+    - name: postgres-cm
+      files:
+          - db/schema.sql
+          - db/seed.sql
 
 generatorOptions:
-  disableNameSuffixHash: true
+    disableNameSuffixHash: true

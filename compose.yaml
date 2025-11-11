@@ -28,6 +28,7 @@ services:
       DB_NAME: postgres
       DB_HOST: db
       DB_PORT: 5432
+      SESSION_SECRET: eventscapesession
     networks:
       - app-network
     depends_on:

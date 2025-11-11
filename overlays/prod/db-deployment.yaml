@@ -3,4 +3,4 @@ kind: Deployment
 metadata:
     name: postgres
 spec:
-    replicas: 2
+    replicas: 1
