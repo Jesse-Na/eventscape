@@ -1,13 +1,13 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 
-const ip = "159.203.54.195";
+const ip = "157.230.71.117";
 
 export const options = {
 	stages: [
-		{ duration: "3m", target: 10 },
-		{ duration: "3m", target: 20 },
-		{ duration: "3m", target: 0 },
+		{ duration: "1m30s", target: 10 },
+		{ duration: "1m30s", target: 20 },
+		{ duration: "4m", target: 0 },
 	],
 };
 
