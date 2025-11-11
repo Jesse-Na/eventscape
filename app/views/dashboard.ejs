@@ -39,7 +39,7 @@
                     <% _events.forEach(function(e){ %>
                       <tr>
                         <td>
-                          <%= e.title %>
+                          <a class="event-link" href="/events/<%= e.event_id %>"><%= e.title %></a>
                         </td>
                         <td>
                           <%= e.location || '—' %>
@@ -89,7 +89,7 @@
                       <% if (!editing) { %>
                         <!-- NORMAL ROW -->
                         <tr>
-                          <td><%= e.title %></td>
+                          <td><a class="event-link" href="/events/<%= e.event_id %>"><%= e.title %></a></td>
                           <td><%= e.location || '—' %></td>
                           <td><%= new Date(e.start_time).toLocaleString() %></td>
                           <td><%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %></td>
@@ -99,7 +99,7 @@
                           <!-- Announce -->
                           <td class="announce-cell">
                             <form method="POST" action="/your-events/<%= e.event_id %>/announce">
-                              <div class=""announce-col">
+                              <div class="announce-col">
                                 <input name="content" type="text" placeholder="Announcement content" required />
                                 <button type="submit">Announce</button>
                               </div>

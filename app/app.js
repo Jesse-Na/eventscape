@@ -19,7 +19,7 @@ app.use(
 		saveUninitialized: false,
 	})
 );
-
+app.use(express.urlencoded({ extended: true }));  // for form posts
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -1079,6 +1079,23 @@ app.post("/your-events", ensureAuth, async (req, res) => {
   }
 });
 
+// Create event accept content
+app.post("/your-events", ensureAuth, async (req, res) => {
+  const { title, location=null, start_time, end_time=null, visibility="public",
+          capacity=null, content=null } = req.body || {};
+  if (!title || !start_time) return res.status(400).send("Title and start time required.");
+
+  await pool.query(`
+    INSERT INTO events (host_id, title, location, start_time, end_time,
+                        capacity, visibility, content)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    [req.user.user_id, title, location, start_time, end_time,
+     (capacity===""?null:+capacity||null), visibility, content]);
+
+  return res.redirect("/your-events");
+});
+
+
 // Post an announcement (owner-only), then return to Your Events
 app.post("/your-events/:id/announce", ensureAuth, async (req, res) => {
   try {
@@ -1204,7 +1221,97 @@ app.post("/your-events/:id/update", ensureAuth, async (req, res) => {
   }
 });
 
+// --- Event Click Functionality ---
 
+// GET: public event details + my RSVP
+// details page (attendee view) + my RSVP state
+app.get("/events/:id", ensureAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const ev = await pool.query(
+      `SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
+              e.capacity, e.visibility, e.content, e.host_id,
+              u.display_name AS host_name,
+              COALESCE(v.going_count,0)      AS going_count,
+              COALESCE(v.interested_count,0) AS interested_count,
+              COALESCE(v.waitlisted_count,0) AS waitlisted_count
+       FROM events e
+       JOIN users u ON u.user_id = e.host_id
+       LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
+       WHERE e.event_id=$1
+       LIMIT 1`,
+      [id]
+    );
+    if (!ev.rowCount) return res.status(404).send("Event not found.");
+
+    const my = await pool.query(
+      "SELECT status FROM rsvps WHERE event_id=$1 AND user_id=$2",
+      [id, req.user.user_id]
+    );
+    const myRSVP = my.rowCount ? my.rows[0].status : null;
+
+    return res.render("event", {
+      event: ev.rows[0],
+      myRSVP,
+      displayName: req.user.display_name,   // for the left greeting
+    });
+  } catch (err) {
+    console.error("GET /events/:id failed:", err);
+    return res.status(500).send("Could not load event.");
+  }
+});
+
+
+// POST: upsert/cancel RSVP
+app.post("/events/:id/rsvp", ensureAuth, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body || {};
+  if (status === "none") {
+    await pool.query("DELETE FROM rsvps WHERE event_id=$1 AND user_id=$2", [id, req.user.user_id]);
+    return res.redirect(`/events/${id}`);
+  }
+  if (!["going","interested","waitlisted"].includes(status)) return res.status(400).send("Invalid RSVP.");
+  await pool.query(`
+    INSERT INTO rsvps (event_id, user_id, status)
+    VALUES ($1,$2,$3)
+    ON CONFLICT (event_id,user_id)
+    DO UPDATE SET status=EXCLUDED.status, updated_at=now()`,
+    [id, req.user.user_id, status]);
+  return res.redirect(`/events/${id}`);
+});
+
+// GET: host detail page
+app.get("/your-events/:id", ensureAuth, async (req, res) => {
+  const { id } = req.params;
+  const ev = await pool.query(`
+    SELECT e.event_id, e.title, e.location, e.start_time, e.end_time, e.capacity,
+           e.visibility, e.content
+    FROM events e
+    WHERE e.event_id=$1 AND e.host_id=$2
+    LIMIT 1`, [id, req.user.user_id]);
+  if (!ev.rowCount) return res.status(404).send("Not found or not your event.");
+  return res.render("your-event", { event: ev.rows[0], displayName: req.user.display_name });
+});
+
+// POST: update event (now includes 'content')
+app.post("/your-events/:id/update", ensureAuth, async (req, res) => {
+  const { id } = req.params;
+  const { title, location=null, start_time, end_time=null, visibility="public",
+          capacity=null, content=null } = req.body || {};
+  const owns = await pool.query("SELECT 1 FROM events WHERE event_id=$1 AND host_id=$2",[id, req.user.user_id]);
+  if (!owns.rowCount) return res.status(403).send("Not your event.");
+  if (!title || !start_time) return res.status(400).send("Title and start time required.");
+
+  await pool.query(`
+    UPDATE events
+       SET title=$1, location=$2, start_time=$3, end_time=$4,
+           visibility=$5, capacity=$6, content=$7
+     WHERE event_id=$8 AND host_id=$9`,
+    [title, location, start_time, end_time, visibility,
+     (capacity===""?null:+capacity||null), content, id, req.user.user_id]);
+  return res.redirect(`/your-events/${id}`);
+});
 
 
 // --- Start server & verify DB connectivity once ---

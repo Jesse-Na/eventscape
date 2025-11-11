@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Edit: <%= event.title %> — EventScape</title>
+  <link rel="stylesheet" href="/style.css"/>
+  <style>
+    .host-detail { max-width: 900px; margin: 160px auto 60px; background:#fff; border-radius:16px; padding:28px 32px; }
+    .grid { display:grid; grid-template-columns: 160px 1fr; gap:10px 16px; }
+    .grid label { font-weight:600; padding-top:8px; }
+    .grid input, .grid select, .grid textarea { width:100%; padding:10px; border:1px solid #cfd6dd; border-radius:8px; }
+    .row-actions { margin-top:16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .danger { background:#ffe9e9; border:1px solid #ffb7b7; color:#a00; padding:8px 12px; border-radius:8px; }
+    .btn { padding:8px 12px; border:1px solid #cfd6dd; border-radius:8px; background:#f7f9fb; }
+    .btn:hover { background:#eef3f8; }
+  </style>
+</head>
+<body class="event-dashboard">
+  <section class="host-detail">
+    <h2>Edit event</h2>
+    <form method="POST" action="/your-events/<%= event.event_id %>/update">
+      <div class="grid">
+        <label>Title</label><input name="title" value="<%- event.title %>" required />
+        <label>Location</label><input name="location" value="<%- event.location || '' %>" />
+        <label>Start</label><input type="datetime-local" name="start_time" value="<%= new Date(event.start_time).toISOString().slice(0,16) %>" required />
+        <label>End</label><input type="datetime-local" name="end_time" value="<%= event.end_time ? new Date(event.end_time).toISOString().slice(0,16) : '' %>" />
+        <label>Capacity</label><input type="number" name="capacity" min="0" value="<%= event.capacity ?? '' %>" />
+        <label>Visibility</label>
+        <select name="visibility">
+          <option value="public"   <%= event.visibility==='public' ? 'selected':'' %>>public</option>
+          <option value="private"  <%= event.visibility==='private' ? 'selected':'' %>>private</option>
+          <option value="unlisted" <%= event.visibility==='unlisted' ? 'selected':'' %>>unlisted</option>
+        </select>
+        <label>Details</label><textarea name="content" rows="5" placeholder="Agenda, notes, extra info"><%- event.content || '' %></textarea>
+      </div>
+
+      <div class="row-actions">
+        <button type="submit" class="btn">Save</button>
+        <a class="btn" href="/your-events">Cancel</a>
+
+        <form method="POST" action="/your-events/<%= event.event_id %>/announce" style="display:inline-flex; gap:8px; margin-left:auto;">
+          <input name="content" placeholder="Announcement to attendees" />
+          <button class="btn" type="submit">Announce</button>
+        </form>
+
+        <form method="POST" action="/your-events/<%= event.event_id %>/delete" onsubmit="return confirm('Delete this event?');" style="display:inline">
+          <button class="danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </form>
+
+    <p style="margin-top:14px;">
+      <a class="event-link" href="/your-events">← Back to Your Events</a>
+    </p>
+  </section>
+</body>
+</html>

@@ -925,3 +925,7 @@ button.sign-up-link:active {
 .event-dashboard .events-table td.edit-cell .btn:hover {
   background: #eef3f8;
 }
+
+.event-link { text-decoration: underline; color: inherit; }
+textarea { resize: vertical; }
+

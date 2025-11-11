@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title><%= event.title %> — EventScape</title>
+  <link rel="stylesheet" href="/globals.css"/>
+  <link rel="stylesheet" href="/style.css"/>
+  <style>
+    .event-meta { display:grid; grid-template-columns: 160px 1fr; gap:10px 16px; }
+    .event-meta .label { font-weight:600; color:#333; padding-top:6px; }
+    .event-content { margin-top: 10px; white-space: pre-wrap; }
+    .rsvp-form { margin-top: 16px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+    .btn { padding:8px 12px; border:1px solid #cfd6dd; border-radius:8px; background:#f7f9fb; cursor:pointer; }
+    .btn:hover { background:#eef3f8; }
+    .event-link { text-decoration: underline; color: inherit; }
+  </style>
+</head>
+<body>
+  <div class="event-dashboard" id="dashboard-root">
+    <!-- background/frames, same assets you already use -->
+    <img class="dashboard-left-white" src="/dashboard-left-white-square.svg" alt="" aria-hidden="true" />
+    <img class="dashboard-main-white" src="/dashboard-main-white-square.svg" alt="" aria-hidden="true" />
+    <img class="dashboard-stats" src="/dashboard-stats-square.svg" alt="" aria-hidden="true" />
+    <img class="stats-header" src="/stats-header.svg" alt="" aria-hidden="true" />
+
+    <!-- brand + sidebar (copied from dashboard.ejs) -->
+    <div class="brand">
+      <img class="brand-logo" src="/logo.svg" alt="EventScape logo" />
+      <span class="brand-text">EventScape</span>
+    </div>
+
+    <h2 class="greeting">Hi, <%= displayName %></h2>
+
+    <div class="sidebar-actions">
+      <a class="pill pill-grey" href="/events"><span>Event Dashboard</span></a>
+      <a class="pill pill-grey" href="/rsvp"><span>RSVP’d Events</span></a>
+      <a class="pill pill-grey" href="/your-events"><span>Your Events</span></a>
+      <a class="pill pill-grey" href="/inbox"><span>Inbox</span></a>
+      <a class="pill pill-grey" href="/profile"><span>Profile Settings</span></a>
+      <a class="pill pill-grey" href="/logout"><span>Log out</span></a>
+    </div>
+
+    <!-- center card with event details -->
+    <section class="events-panel">
+      <h2><%= event.title %></h2>
+
+      <div class="event-meta">
+        <div class="label">Host</div>       <div><%= event.host_name %></div>
+        <div class="label">Location</div>   <div><%= event.location || '—' %></div>
+        <div class="label">Start</div>      <div><%= new Date(event.start_time).toLocaleString() %></div>
+        <div class="label">End</div>        <div><%= event.end_time ? new Date(event.end_time).toLocaleString() : '—' %></div>
+        <div class="label">Capacity</div>   <div><%= (event.capacity ?? '—') %></div>
+        <div class="label">Visibility</div> <div><%= event.visibility %></div>
+        <div class="label">RSVP Counts</div>
+        <div>Going <%= event.going_count %>, Interested <%= event.interested_count %>, Waitlist <%= event.waitlisted_count %></div>
+      </div>
+
+      <% if (event.content) { %>
+        <h3 style="margin-top:14px;">Details</h3>
+        <div class="event-content"><%- event.content %></div>
+      <% } %>
+
+      <h3 style="margin-top:18px;">Your RSVP</h3>
+      <form method="POST" action="/events/<%= event.event_id %>/rsvp" class="rsvp-form">
+        <label><input type="radio" name="status" value="going"      <%= myRSVP==='going' ? 'checked' : '' %> > Going</label>
+        <label><input type="radio" name="status" value="interested" <%= myRSVP==='interested' ? 'checked' : '' %> > Interested</label>
+        <label><input type="radio" name="status" value="waitlisted" <%= myRSVP==='waitlisted' ? 'checked' : '' %> > Waitlist</label>
+        <label><input type="radio" name="status" value="none"       <%= !myRSVP ? 'checked' : '' %> > No RSVP</label>
+        <button type="submit" class="btn">Update RSVP</button>
+      </form>
+
+      <p style="margin-top:14px;">
+        <a class="event-link" href="/events">← Back to Upcoming Events</a>
+      </p>
+    </section>
+  </div>
+
+  <script>
+    // keep the greeting width/resize behavior consistent
+    window.addEventListener("load", function () {
+      const greeting = document.querySelector(".greeting");
+      if (!greeting) return;
+      const maxWidth = 255; let fontSize = 20;
+      while (greeting.scrollWidth > maxWidth && fontSize > 10) {
+        fontSize -= 0.5; greeting.style.fontSize = fontSize + "px";
+      }
+      greeting.style.width = maxWidth + "px"; greeting.style.textAlign = "center";
+    });
+  </script>
+</body>
+</html>
