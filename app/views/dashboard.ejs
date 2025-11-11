@@ -19,7 +19,16 @@
       <div class="dashboard" id="dashboard-main">
         <% var _panel=(typeof panel !=='undefined' ) ? panel.trim() : 'profile' ; var _events=(typeof events
           !=='undefined' && Array.isArray(events)) ? events : []; var hasEvents=_events.length> 0;
-          %>
+
+          var _announcements = (typeof announcements !== 'undefined' && Array.isArray(announcements)) ? announcements : [];
+          var _invitations = (typeof invitations !== 'undefined' && Array.isArray(invitations)) ? invitations : [];
+          var _rsvpd = (typeof rsvpd !== 'undefined' && Array.isArray(rsvpd)) ? rsvpd : [];
+
+          var hasAnnouncements = _announcements.length > 0;
+          var hasInvitations = _invitations.length > 0;
+          var hasRsvpd = _rsvpd.length > 0;
+        %>
+          
           <% if (_panel==='events' ) { %>
             <section class="events-panel">
               <h2>Upcoming Events</h2>
@@ -94,7 +103,121 @@
                   <div class="profile-saved">Settings saved ✔</div>
                   <% } %>
               </section>
-              <% } %>
+
+              <% } else if (_panel==='inbox' ) { %>
+                <section class="events-panel">
+                  <h2>Announcements</h2>
+                  <% if (hasAnnouncements) { %>
+                    <table class="events-table">
+                      <thead>
+                        <tr>
+                          <th>Title</th>
+                          <th>Event</th>
+                          <th>Posted</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% _announcements.forEach(function(a){ %>
+                          <tr>
+                            <td>
+                              <%= a.announcement_title %>
+                            </td>
+                            <td>
+                              <%= a.event_title || '—' %>
+                            </td>
+                            <td>
+                              <%= new Date(a.announcement_created_at).toLocaleString() %>
+                            </td>
+                          </tr>
+                          <% }) %>
+                      </tbody>
+                    </table>
+                    <% } else { %>
+                      <p class="empty-state">No announcements to view</p>
+                      <% } %>
+                </section>
+                <section class="events-panel invitations-panel">
+                  <h2>Invitations</h2>
+                  <% if (hasInvitations) { %>
+                    <table class="events-table">
+                      <thead>
+                        <tr>
+                          <th>Event</th>
+                          <th>Location</th>
+                          <th>Start</th>
+                          <th>End</th>
+                          <th>Capacity</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% _invitations.forEach(function(i){ %>
+                          <tr>
+                            <td>
+                              <%= i.event_title %>
+                            </td>
+                            <td>
+                              <%= i.location %>
+                            </td>
+                            <td>
+                              <%= new Date(i.start_time).toLocaleString() %>
+                            </td>
+                            <td>
+                              <%= new Date(i.end_time).toLocaleString() %>
+                            </td>
+                            <td>
+                              <%= (typeof i.capacity==='number' ) ? i.capacity : '—' %>
+                            </td>
+                            </td>
+                          </tr>
+                          <% }) %>
+                      </tbody>
+                    </table>
+                    <% } else { %>
+                      <p class="empty-state">No pending invitations</p>
+                      <% } %>
+                </section>
+
+                <% } else if (_panel==='rsvpd' ) { %>
+                  <section class="events-panel">
+                    <h2>RSVP’d Events</h2>
+                    <% if (hasRsvpd) { %>
+                      <table class="events-table">
+                        <thead>
+                          <tr>
+                            <th>Event</th>
+                            <th>Location</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>RSVP Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <% _rsvpd.forEach(function(r){ %>
+                            <tr>
+                              <td>
+                                <%= r.event_title %>
+                              </td>
+                              <td>
+                                <%= r.location %>
+                              </td>
+                              <td>
+                                <%= new Date(r.start_time).toLocaleString() %>
+                              </td>
+                              <td>
+                                <%= new Date(r.end_time).toLocaleString() %>
+                              </td>
+                              <td>
+                                <%= r.rsvp_status %>
+                              </td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                      </table>
+                      <% } else { %>
+                        <p class="empty-state">No RSVPs to view</p>
+                        <% } %>
+                  </section>
+                  <% } %>
       </div>
 
       <!-- Light grey content boxes -->
@@ -105,9 +228,15 @@
 
       <!-- Stats header overlay -->
       <img class="stats-header" src="stats-header.svg" alt="" aria-hidden="true" />
-      <div class="stat stat--upcoming"><%= stats.upcoming %></div>
-      <div class="stat stat--attended"><%= stats.attended %></div>
-      <div class="stat stat--notifications"><%= stats.notifications %></div>
+      <div class="stat stat--upcoming">
+        <%= stats.upcoming %>
+      </div>
+      <div class="stat stat--attended">
+        <%= stats.attended %>
+      </div>
+      <div class="stat stat--notifications">
+        <%= stats.notifications %>
+      </div>
 
       <!-- Sidebar text items -->
       <div class="brand">
@@ -121,7 +250,7 @@
           <span>Event Dashboard</span>
         </a>
 
-        <a class="pill pill-grey" href="/rsvp">
+        <a class="pill pill-grey" href="/rsvpd">
           <span>RSVP’d Events</span>
         </a>
 

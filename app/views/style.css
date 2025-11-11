@@ -856,3 +856,6 @@ button.sign-up-link:active {
 .event-dashboard .events-table tbody tr:hover {
   background: #fafafa;
 }
+.event-dashboard .invitations-panel {
+  top: 600px; /* pushes the invitations box below announcements */
+}

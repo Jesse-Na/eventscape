@@ -1182,6 +1182,99 @@ app.get("/events", ensureAuth, async (req, res) => {
   }
 });
 
+app.get("/inbox", ensureAuth, async (req, res) => {
+  const userId = req.user.user_id;
+  const stats = await getDashboardStats(pool, req.user.user_id);
+  try {
+    const { rows: announcements } = await pool.query(
+      `
+      SELECT
+        a.announcement_id,
+        COALESCE(e.title, 'Announcement') AS announcement_title,   -- matches EJS
+        a.created_at                       AS announcement_created_at, -- matches EJS
+        e.event_id,
+        e.title                            AS event_title            -- matches EJS
+      FROM notifications n
+      JOIN announcements a ON a.announcement_id = n.announcement_id
+      LEFT JOIN events e    ON e.event_id        = a.event_id
+      WHERE n.user_id = $1
+        AND n.type   = 'announcement'
+      ORDER BY a.created_at DESC
+      `,
+      [userId]
+    );
+
+    const { rows: invitations } = await pool.query(
+      `
+      SELECT
+        e.event_id,
+        e.title      AS event_title,   -- matches EJS
+        e.location,                    -- matches EJS
+        e.start_time,                  -- matches EJS
+        e.end_time,                    -- matches EJS
+        e.capacity                     -- matches EJS
+      FROM notifications n
+      JOIN invitations i ON i.invitation_id = n.invitation_id
+      JOIN events e      ON e.event_id      = i.event_id
+      WHERE n.user_id = $1
+        AND n.type   = 'invitation'
+        AND e.start_time >= NOW()
+      ORDER BY e.start_time ASC
+      `,
+      [userId]
+    );
+
+    return res.render("dashboard", {
+      panel: "inbox",
+      announcements,
+      invitations,
+      displayName: req.user.display_name,
+      email: req.user.email,
+	  stats,
+    });
+  } catch (err) {
+    console.error("[GET /inbox] error:", err);
+    return res.status(500).send("Failed to load inbox");
+  }
+});
+
+app.get("/rsvpd", ensureAuth, async (req, res) => {
+  const userId = req.user.user_id;
+  const stats = await getDashboardStats(pool, req.user.user_id);
+  try {
+    const { rows: rsvpd } = await pool.query(
+      `
+      SELECT
+        r.rsvp_id,
+        r.status     AS rsvp_status,   -- matches EJS
+        r.created_at AS rsvp_created_at,
+        e.event_id,
+        e.title      AS event_title,   -- matches EJS
+        e.location,                    -- matches EJS
+        e.start_time,                  -- matches EJS
+        e.end_time                     -- matches EJS
+      FROM rsvps r
+      JOIN events e ON e.event_id = r.event_id
+      WHERE r.user_id = $1
+      ORDER BY e.start_time ASC
+      `,
+      [userId]
+    );
+
+    return res.render("dashboard", {
+      panel: "rsvpd",
+      rsvpd,
+      displayName: req.user.display_name,
+      email: req.user.email,
+	  stats
+    });
+  } catch (err) {
+    console.error("[GET /rsvpd] error:", err);
+    return res.status(500).send("Failed to load RSVP’d events");
+  }
+});
+
+
 // --- Start server & verify DB connectivity once ---
 const port = Number(process.env.PORT || 3000);
 app.listen(port, async () => {
