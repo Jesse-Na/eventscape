@@ -1,7 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-    - secrets.yaml
     - db-pv.yaml
     - db-pvc.yaml
     - db-deployment.yaml
@@ -14,6 +13,11 @@ configMapGenerator:
       files:
           - db/schema.sql
           - db/seed.sql
+
+secretGenerator:
+    - name: secrets
+      envs:
+          - .env.secret
 
 generatorOptions:
     disableNameSuffixHash: true

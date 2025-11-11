@@ -1,5 +1,5 @@
 node_modules/
-.env
+*.env
 app/node_modules/
 .env.*
 kube-state-metrics/
