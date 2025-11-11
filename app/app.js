@@ -91,6 +91,66 @@ function ensureAuth(req, res, next) {
   return res.redirect('/login');
 }
 
+async function getDashboardStats(pool, userId) {
+  let upcomingCount = "-";
+  let attendedCount = "-";
+  let notificationCount = "-";
+
+  try {
+    //Fetch number of upcoming events for user
+    //Sum of future events user is hosting + future events user is RSVPed as 'going'
+    const upcomingHostedResult = await pool.query(
+      `SELECT COUNT(*) AS count FROM events 
+      WHERE host_id = $1
+      AND start_time >= CURRENT_TIMESTAMP`,
+      [userId]
+    );
+    const upcomingGoingResult = await pool.query(
+      `SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
+      WHERE r.user_id = $1
+      AND e.start_time >= CURRENT_TIMESTAMP
+      AND r.status = 'going'`,
+      [userId]
+    );
+    upcomingCount = parseInt(upcomingHostedResult.rows[0].count, 10) + parseInt(upcomingGoingResult.rows[0].count, 10);
+
+    //Fetch number of attended events for user
+    //Sum of past events user has hosted + past events user had RSVPed as 'going'
+    const attendedHostedResult = await pool.query(
+      `SELECT COUNT(*) AS count FROM events 
+      WHERE host_id = $1
+      AND start_time < CURRENT_TIMESTAMP`,
+      [userId]
+    );
+    const attendedGoingResult = await pool.query(
+      `SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
+      WHERE r.user_id = $1
+      AND e.start_time < CURRENT_TIMESTAMP
+      AND r.status = 'going'`,
+      [userId]
+    );
+    attendedCount = parseInt(attendedHostedResult.rows[0].count, 10) + parseInt(attendedGoingResult.rows[0].count, 10);
+
+    //Fetch number of unread notifications for user
+    const notifResult = await pool.query(
+      `SELECT COUNT(*) AS count FROM notifications 
+      WHERE user_id = $1
+      AND is_read = FALSE`,
+      [userId]
+    );
+    notificationCount = parseInt(notifResult.rows[0].count, 10);
+
+  } catch (err) {
+    console.error("Error fetching dashboard stats: ", err);
+  }
+
+  return {
+    upcoming: upcomingCount,
+    attended: attendedCount,
+    notifications: notificationCount,
+  };
+}
+
 app.get("/", (req, res) => {
 	if (req.session.passport && req.session.passport.user) {
 		const email = req.session.passport.user.email;
@@ -1055,14 +1115,21 @@ app.put("/invitations/:id", async (req, res) => {
 	}
 });
 
-app.get('/profile', ensureAuth, (req, res) => {
-  res.render('dashboard', {
-    displayName: req.user.display_name,
-    email: req.user.email,
-    notification_setting: req.user.notification_setting,
-    panel: 'profile',
-    saved: req.query.saved === '1'
-  });
+app.get('/profile', ensureAuth, async (req, res) => {
+  try {
+    const stats = await getDashboardStats(pool, req.user.user_id);
+    res.render('dashboard', {
+      displayName: req.user.display_name,
+      email: req.user.email,
+      notification_setting: req.user.notification_setting,
+      panel: 'profile',
+      saved: req.query.saved === '1',
+      stats,
+    });
+  } catch (e) {
+    console.error("Failed to render Profile Dashboard:", e.message);
+    res.status(500).send("Could not load profile.");
+  }
 });
 
 app.post('/profile/notification', ensureAuth, async (req, res) => {
@@ -1091,6 +1158,8 @@ app.post('/profile/notification', ensureAuth, async (req, res) => {
 
 app.get("/events", ensureAuth, async (req, res) => {
   try {
+    const stats = await getDashboardStats(pool, req.user.user_id);
+
     const q = `
       SELECT event_id, title, location, start_time, end_time, capacity
       FROM events
@@ -1104,7 +1173,8 @@ app.get("/events", ensureAuth, async (req, res) => {
     res.render("dashboard", {
       panel: "events",
       events: rows,
-      displayName: req.user.display_name
+      displayName: req.user.display_name,
+      stats,
     });
   } catch (e) {
     console.error("Failed to render Event Dashboard:", e.message);
