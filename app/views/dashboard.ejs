@@ -33,7 +33,62 @@
             <section class="events-panel">
               <h2>Upcoming Events</h2>
 
-              <% if (hasEvents) { %>
+              <% if (typeof detailEvent !== 'undefined' && detailEvent) { %>
+                <div class="card event-detail-card">
+                  <div class="event-detail__header">
+                    <h2 class="event-detail__title"><%= detailEvent.title %></h2>
+                    <a class="btn btn-link" href="/events">Back to all</a>
+                  </div>
+
+                  <div class="event-detail__meta">
+                    <div><strong>Host:</strong> <%= detailEvent.host_name %></div>
+                    <div><strong>Location:</strong> <%= detailEvent.location || '—' %></div>
+                    <div><strong>Starts:</strong> <%= new Date(detailEvent.start_time).toLocaleString() %></div>
+                    <div><strong>Ends:</strong> <%= detailEvent.end_time ? new Date(detailEvent.end_time).toLocaleString() : '—' %></div>
+                    <div>
+                      <strong>Capacity:</strong> <%= (detailEvent.capacity ?? '—') %>
+                      <% if (detailEvent.capacity !== null) { %>(<%= detailEvent.going_count %> going)<% } %>
+                    </div>
+                  </div>
+
+                  <% if (detailEvent.content) { %>
+                    <div class="event-detail__desc"><%= detailEvent.content %></div>
+                  <% } %>
+
+                  <div class="event-detail__actions">
+                    <% if (myRsvp && myRsvp.status === 'going') { %>
+                      <!-- Cancel RSVP -->
+                      <form method="POST" action="/events/<%= detailEvent.event_id %>/rsvp?ui=1">
+                        <input type="hidden" name="user_id" value="<%= user_id %>">
+                        <input type="hidden" name="status" value="cancelled">
+                        <button type="submit" class="btn btn-danger">Cancel RSVP</button>
+                      </form>
+                    <% } else { %>
+                      <% if (detailEvent.capacity === null || detailEvent.going_count < detailEvent.capacity) { %>
+                        <!-- RSVP Going -->
+                        <form method="POST" action="/events/<%= detailEvent.event_id %>/rsvp?ui=1">
+                          <input type="hidden" name="user_id" value="<%= user_id %>">
+                          <input type="hidden" name="status" value="going">
+                          <button type="submit" class="btn">RSVP</button>
+                        </form>
+                      <% } else { %>
+                        <% if (detailEvent.waitlist) { %>
+                          <!-- Join waitlist -->
+                          <form method="POST" action="/events/<%= detailEvent.event_id %>/rsvp?ui=1">
+                            <input type="hidden" name="user_id" value="<%= user_id %>">
+                            <input type="hidden" name="status" value="waitlisted">
+                            <button type="submit" class="btn">Join waitlist</button>
+                          </form>
+                        <% } else { %>
+                          <p class="full-msg">This event is full.</p>
+                        <% } %>
+                      <% } %>
+                    <% } %>
+                  </div>
+                </div>
+              <% } %>
+
+              <% if (!detailEvent && hasEvents) { %>
                 <table class="events-table">
                   <thead>
                     <tr>
@@ -48,27 +103,19 @@
                     <% _events.forEach(function(e){ %>
                       <tr>
                         <td>
-                          <%= e.title %>
+                          <a class="event-link" href="/events?view=<%= e.event_id %>"><%= e.title %></a>
                         </td>
-                        <td>
-                          <%= e.location || '—' %>
-                        </td>
-                        <td>
-                          <%= new Date(e.start_time).toLocaleString() %>
-                        </td>
-                        <td>
-                          <%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %>
-                        </td>
-                        <td>
-                          <%= (e.capacity===null || e.capacity===undefined) ? '—' : e.capacity %>
-                        </td>
+                        <td><%= e.location || '—' %></td>
+                        <td><%= new Date(e.start_time).toLocaleString() %></td>
+                        <td><%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %></td>
+                        <td><%= (e.capacity===null || e.capacity===undefined) ? '—' : e.capacity %></td>
                       </tr>
-                      <% }); %>
+                    <% }) %>
                   </tbody>
                 </table>
-                <% } else { %>
-                  <p class="no-events-msg">No upcoming events.</p>
-                  <% } %>
+              <% } else if (!detailEvent) { %>
+                <p class="no-events-msg">No upcoming events.</p>
+              <% } %>
             </section>
 
             <!-- Code for your-events -->
@@ -98,7 +145,7 @@
                       <% if (!editing) { %>
                         <!-- NORMAL ROW -->
                         <tr>
-                          <td><%= e.title %></td>
+                          <td><a class="event-link" href="/events?view=<%= e.event_id %>"><%= e.title %></a></td>
                           <td><%= e.location || '—' %></td>
                           <td><%= new Date(e.start_time).toLocaleString() %></td>
                           <td><%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %></td>
@@ -108,7 +155,7 @@
                           <!-- Announce -->
                           <td class="announce-cell">
                             <form method="POST" action="/your-events/<%= e.event_id %>/announce">
-                              <div class=""announce-col">
+                              <div class="announce-col">
                                 <input name="content" type="text" placeholder="Announcement content" required />
                                 <button type="submit">Announce</button>
                               </div>
@@ -330,7 +377,7 @@
                           <% _rsvpd.forEach(function(r){ %>
                             <tr>
                               <td>
-                                <%= r.event_title %>
+                                <a class="event-link" href="/events?view=<%= r.event_id %>"><%= r.event_title %></a>
                               </td>
                               <td>
                                 <%= r.location %>
@@ -352,7 +399,7 @@
                         <p class="empty-state">No RSVPs to view</p>
                         <% } %>
                   </section>
-                  <% } %>
+                <% } %>
       </div>
 
       <!-- Light grey content boxes -->
@@ -363,14 +410,19 @@
 
       <!-- Stats header overlay -->
       <img class="stats-header" src="stats-header.svg" alt="" aria-hidden="true" />
-      <div class="stat stat--upcoming" id="upcoming-count">
-        <%= stats.upcoming %>
+      <% 
+        var _stats = (typeof stats === 'object' && stats)
+          ? stats
+          : { upcoming: '—', attended: '—', notifications: '—' };
+      %>
+      <div class="stat stat--upcoming">
+        <%= _stats.upcoming %>
       </div>
-      <div class="stat stat--attended" id="attended-count">
-        <%= stats.attended %>
+      <div class="stat stat--attended">
+        <%= _stats.attended %>
       </div>
-      <div class="stat stat--notifications" id="notifications-count">
-        <%= stats.notifications %>
+      <div class="stat stat--notifications">
+        <%= _stats.notifications %>
       </div>
 
       <!-- Sidebar text items -->

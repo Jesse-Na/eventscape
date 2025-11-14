@@ -22,6 +22,7 @@ app.use(
 	})
 );
 
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -743,6 +744,13 @@ app.delete("/events/:id", async (req, res) => {
 	}
 });
 
+app.get('/events/:id/view', ensureAuth, (req, res) => {
+  const { id } = req.params;
+  if (!isUUID(id)) return res.status(400).send('Invalid event id');
+  return res.redirect(`/events?view=${id}`);   // <-- exactly this
+});
+
+
 // --- RSVPS ---
 app.post("/events/:id/rsvp", async (req, res) => {
 	try {
@@ -778,6 +786,9 @@ app.post("/events/:id/rsvp", async (req, res) => {
 			status,
 			waitlist_position,
 		]);
+		if (req.query.ui === "1") {
+      		return res.redirect(`/events?view=${event_id}`);
+    	}
 		res.status(201).json(rows[0]);
 	} catch (e) {
 		if (e.code === "23503")
@@ -1224,23 +1235,55 @@ app.post('/profile/notification', ensureAuth, async (req, res) => {
 
 app.get("/events", ensureAuth, async (req, res) => {
   try {
-    const stats = await getDashboardStats(pool, req.user.user_id);
+	const userId = req.user.user_id;
+    const stats = await getDashboardStats(pool, userId);
 
-    const q = `
-      SELECT event_id, title, location, start_time, end_time, capacity
-      FROM events
-      WHERE visibility = 'public'
-        AND start_time >= NOW()
-      ORDER BY start_time ASC
-      LIMIT 200;
-    `;
-    const { rows } = await pool.query(q);
+    const {rows: events } = await pool.query(`
+      SELECT e.event_id, e.title, e.location, e.start_time, e.end_time, e.capacity
+      FROM events e
+      WHERE (e.visibility = 'public' OR e.host_id = $1)
+        AND e.start_time >= NOW()
+      ORDER BY e.start_time ASC
+      LIMIT 200
+    `, [userId]);
+
+    const viewId = req.query.view;
+	let detailEvent = null;
+	let myRsvp = null;
+
+	
+    if (viewId && isUUID(viewId)) {
+      const { rows } = await pool.query(`
+        SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
+               e.capacity, e.waitlist, e.visibility, e.content,
+               u.user_id AS host_id, u.display_name AS host_name,
+               COALESCE(v.going_count,0) AS going_count
+        FROM events e
+        JOIN users u ON u.user_id = e.host_id
+        LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
+        WHERE e.event_id = $1
+      `, [viewId]);
+      if (rows.length) {
+        detailEvent = rows[0];
+        const mine = await pool.query(
+          `SELECT status, waitlist_position
+             FROM rsvps WHERE event_id = $1 AND user_id = $2`,
+          [viewId, userId]
+        );
+        myRsvp = mine.rows[0] || null;
+      }
+    }
 
     res.render("dashboard", {
       panel: "events",
-      events: rows,
+      events,
+	  detailEvent,
+	  myRsvp,
       displayName: req.user.display_name,
+	  email: req.user.email,
+	  notification_setting: req.user.notification_setting,
       stats,
+	  user_id: userId,
     });
   } catch (e) {
     console.error("Failed to render Event Dashboard:", e.message);
@@ -1262,24 +1305,25 @@ function requireOwner(userId) {
 // Show only the events I host
 app.get("/your-events", ensureAuth, async (req, res) => {
   try {
-    const stats = await getDashboardStats(pool, req.user.user_id);
+    const editingId = req.query.edit || null;
+    const stats = await getDashboardStats(pool, req.user.user_id); // <-- add this
 
-    const { rows } = await pool.query(
-      `SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
-              e.capacity, e.visibility,
-              COALESCE(v.going_count,0) AS going_count,
-              COALESCE(v.interested_count,0) AS interested_count,
-              COALESCE(v.waitlisted_count,0) AS waitlisted_count
-       FROM events e
-       LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
-       WHERE e.host_id = $1
-       ORDER BY e.start_time DESC`,
-      [req.user.user_id]
-    );
+    const q = `
+      SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
+             e.capacity, e.visibility,
+             COALESCE(v.going_count,0) AS going_count,
+             COALESCE(v.interested_count,0) AS interested_count,
+             COALESCE(v.waitlisted_count,0) AS waitlisted_count
+      FROM events e
+      LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
+      WHERE e.host_id = $1
+      ORDER BY e.start_time DESC`;
+    const { rows } = await pool.query(q, [req.user.user_id]);
 
     return res.render("dashboard", {
       panel: "your-events",
       events: rows,
+      editingId,
       displayName: req.user.display_name,
       email: req.user.email,
       notification_setting: req.user.notification_setting,
@@ -1369,40 +1413,6 @@ app.post("/your-events/:id/delete", ensureAuth, async (req, res) => {
   }
 });
 
-// Allow the list route to know which row is in "edit mode"
-app.get("/your-events", ensureAuth, async (req, res) => {
-  try {
-    const stats = await getDashboardStats(pool, req.user.user_id);
-
-    const editingId = req.query.edit || null;
-
-    const q = `
-      SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
-             e.capacity, e.visibility,
-             COALESCE(v.going_count,0) AS going_count,
-             COALESCE(v.interested_count,0) AS interested_count,
-             COALESCE(v.waitlisted_count,0) AS waitlisted_count
-      FROM events e
-      LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
-      WHERE e.host_id = $1
-      ORDER BY e.start_time DESC`;
-    const { rows } = await pool.query(q, [req.user.user_id]);
-
-    return res.render("dashboard", {
-      panel: "your-events",
-      events: rows,
-      editingId, 
-      displayName: req.user.display_name,
-      email: req.user.email,
-      notification_setting: req.user.notification_setting,
-      saved: false,
-      stats,
-    });
-  } catch (e) {
-    console.error("GET /your-events failed:", e);
-    return res.status(500).send("Could not load your events.");
-  }
-});
 
 // Update (edit) an event I own
 app.post("/your-events/:id/update", ensureAuth, async (req, res) => {

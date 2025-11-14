@@ -937,3 +937,58 @@ button.sign-up-link:active {
 .event-dashboard .invitations-panel {
   top: 600px; /* pushes the invitations box below announcements */
 }
+
+/* keep table links from turning blue/purple */
+.events-table a.event-link {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+.events-table a.event-link:hover {
+  text-decoration: underline;
+}
+
+/* inline details card to match your cards */
+.event-detail-card {
+  margin-bottom: 16px;
+}
+
+.event-detail__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.event-detail__title {
+  margin: 0;
+}
+
+.event-detail__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 8px 24px;
+  margin: 12px 0;
+}
+
+.event-detail__desc {
+  margin: 12px 0 16px;
+  line-height: 1.45;
+}
+
+.event-detail__actions form {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.btn.btn-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.btn.btn-danger {
+  background: #fbeaea;
+  border: 1px solid #f2c7c7;
+}
