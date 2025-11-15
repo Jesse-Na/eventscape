@@ -152,36 +152,44 @@ async function getDashboardStats(pool, userId) {
     //Fetch number of upcoming events for user
     //Sum of future events user is hosting + future events user is RSVPed as 'going'
     const upcomingHostedResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM events 
+      `SELECT event_id FROM events 
       WHERE host_id = $1
       AND start_time >= CURRENT_TIMESTAMP`,
       [userId]
     );
     const upcomingGoingResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
+      `SELECT r.event_id FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
       WHERE r.user_id = $1
       AND e.start_time >= CURRENT_TIMESTAMP
       AND r.status = 'going'`,
       [userId]
     );
-    upcomingCount = parseInt(upcomingHostedResult.rows[0].count, 10) + parseInt(upcomingGoingResult.rows[0].count, 10);
+    const uniqueUpcomingEvents = new Set([
+      ...upcomingHostedResult.rows.map(row => row.event_id),
+      ...upcomingGoingResult.rows.map(row => row.event_id),
+    ]);
+    upcomingCount = uniqueUpcomingEvents.size;
 
     //Fetch number of attended events for user
     //Sum of past events user has hosted + past events user had RSVPed as 'going'
     const attendedHostedResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM events 
+      `SELECT event_id FROM events 
       WHERE host_id = $1
       AND start_time < CURRENT_TIMESTAMP`,
       [userId]
     );
     const attendedGoingResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
+      `SELECT r.event_id FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id 
       WHERE r.user_id = $1
       AND e.start_time < CURRENT_TIMESTAMP
       AND r.status = 'going'`,
       [userId]
     );
-    attendedCount = parseInt(attendedHostedResult.rows[0].count, 10) + parseInt(attendedGoingResult.rows[0].count, 10);
+    const uniqueAttendedEvents = new Set([
+      ...attendedHostedResult.rows.map(row => row.event_id),
+      ...attendedGoingResult.rows.map(row => row.event_id),
+    ]);
+    attendedCount = uniqueAttendedEvents.size;
 
     //Fetch number of unread notifications for user
     const notifResult = await pool.query(
