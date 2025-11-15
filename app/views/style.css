@@ -610,6 +610,14 @@ button.sign-up-link:active {
   z-index: 3;
 }
 
+.event-dashboard .stat {
+  transition: color 0.3s ease;
+}
+
+.event-dashboard .stat.updated {
+  color: #4a90e2;
+}
+
 .event-dashboard .stat--upcoming { 
   left: calc(50% - 220px); 
   font-size: 40px;

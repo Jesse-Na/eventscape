@@ -9,6 +9,8 @@ const ejs = require("ejs");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
+const { Server } = require("socket.io");
+const { createServer } = require("http");
 
 const app = express();
 
@@ -29,6 +31,50 @@ app.use(express.static(path.join(__dirname, "views")));
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 app.engine("html", ejs.renderFile);
+
+const appServer = createServer(app);
+const io = new Server(appServer);
+
+//Listening for postgres notifications
+async function initDbListener ({ retries = 10, interval = 3000 } = {}) {
+  let client;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      client = await pool.connect();
+      console.log("Connected to Postgres for notifications (attempt", attempt, ")");
+      break;
+    } catch (err) {
+      console.warn(`Postgres not ready (attempt ${attempt}): ${err.message}`);
+      if (attempt === retries) {
+        console.error("Max retries reached. Could not connect to Postgres for LISTEN.");
+        return;
+      }
+      await new Promise(r => setTimeout(r, interval));
+    }
+  }
+
+  if (!client) return;
+
+  client.on("error", err => {
+    console.error("LISTEN client error:", err);
+  });
+
+  client.on("notification", (msg) => {
+    if (msg.channel === "stats_channel") {
+      console.log("DB change received:", msg.payload);
+      io.emit("statsChanged");
+    }
+  });
+
+  try {
+    await client.query("LISTEN stats_channel");
+    console.log("Listening for Postgres notifications on 'stats_channel'");
+  } catch (err) {
+    console.error("Failed to init LISTEN client:", err);
+  }
+}
+
+initDbListener();
 
 passport.serializeUser((user, done) => {
   done(null, {
@@ -156,6 +202,12 @@ async function getDashboardStats(pool, userId) {
     notifications: notificationCount,
   };
 }
+
+// Used by client-side to update stats bar in real-time
+app.get("/getDashboardStats", ensureAuth, async (req, res) => {
+  const stats = await getDashboardStats(pool, req.user.user_id);
+  res.json(stats);
+});
 
 app.get("/", (req, res) => {
 	if (req.session.passport && req.session.passport.user) {
@@ -1202,6 +1254,8 @@ function requireOwner(userId) {
 // Show only the events I host
 app.get("/your-events", ensureAuth, async (req, res) => {
   try {
+    const stats = await getDashboardStats(pool, req.user.user_id);
+
     const { rows } = await pool.query(
       `SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
               e.capacity, e.visibility,
@@ -1222,6 +1276,7 @@ app.get("/your-events", ensureAuth, async (req, res) => {
       email: req.user.email,
       notification_setting: req.user.notification_setting,
       saved: false,
+      stats,
     });
   } catch (e) {
     console.error("GET /your-events failed:", e);
@@ -1309,6 +1364,8 @@ app.post("/your-events/:id/delete", ensureAuth, async (req, res) => {
 // Allow the list route to know which row is in "edit mode"
 app.get("/your-events", ensureAuth, async (req, res) => {
   try {
+    const stats = await getDashboardStats(pool, req.user.user_id);
+
     const editingId = req.query.edit || null;
 
     const q = `
@@ -1331,6 +1388,7 @@ app.get("/your-events", ensureAuth, async (req, res) => {
       email: req.user.email,
       notification_setting: req.user.notification_setting,
       saved: false,
+      stats,
     });
   } catch (e) {
     console.error("GET /your-events failed:", e);
@@ -1491,7 +1549,7 @@ app.get("/rsvpd", ensureAuth, async (req, res) => {
 
 // --- Start server & verify DB connectivity once ---
 const port = Number(process.env.PORT || 3000);
-app.listen(port, async () => {
+appServer.listen(port, async () => {
 	try {
 		await pool.query("SELECT 1");
 		console.log(

@@ -151,3 +151,24 @@ SELECT
 FROM events e
 LEFT JOIN rsvps r ON r.event_id = e.event_id
 GROUP BY e.event_id;
+
+-- ===== Trigger notifications for stats bar related changes =====
+CREATE OR REPLACE FUNCTION notify_stats_change() RETURNS trigger AS $$
+BEGIN
+  PERFORM pg_notify('stats_channel', 'stats_changed');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add triger for events, RSVPS, and notifications
+CREATE TRIGGER notify_events_change
+AFTER INSERT OR UPDATE OR DELETE ON events
+FOR EACH STATEMENT EXECUTE FUNCTION notify_stats_change();
+
+CREATE TRIGGER notify_rsvps_change
+AFTER INSERT OR UPDATE OR DELETE ON rsvps
+FOR EACH STATEMENT EXECUTE FUNCTION notify_stats_change();
+
+CREATE TRIGGER notify_notifications_change
+AFTER INSERT OR UPDATE OR DELETE ON notifications
+FOR EACH STATEMENT EXECUTE FUNCTION notify_stats_change();
