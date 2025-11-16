@@ -38,7 +38,7 @@
 
 -   Sign in with `doctl` and switch to the appropriate DigitalOcean context
     -   See the [documentation](https://docs.digitalocean.com/reference/doctl/how-to/install/) for help.
--   Switch kubectl context to Kubernetes cluster on DigitalOcean `doctl kubernetes cluster kubeconfig save 478213db-0a17-41e9-8561-f08fee4fb7ad`
+-   Switch kubectl context to Kubernetes cluster on DigitalOcean `doctl kubernetes cluster kubeconfig save 2de56168-f09f-4af5-8163-ada2a7aa310a`
 -   Verify you are connected by running `kubectl cluster-info`. You should see the control plane is running on a DigitalOcean domain.
 -   Build the docker image `docker buildx build --platform linux/amd64 -t eventscape-app:amd64 .`
 -   Tag and push image `docker tag eventscape-app:amd64 sodiumna11/eventscape-app` and `docker push sodiumna11/eventscape-app`
