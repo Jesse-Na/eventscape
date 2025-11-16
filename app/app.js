@@ -9,6 +9,8 @@ const ejs = require("ejs");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
+const { Server } = require("socket.io");
+const { createServer } = require("http");
 
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY || "");
@@ -23,6 +25,7 @@ app.use(
 	})
 );
 
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -32,6 +35,58 @@ app.use(express.static(path.join(__dirname, "views")));
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 app.engine("html", ejs.renderFile);
+
+const appServer = createServer(app);
+const io = new Server(appServer);
+
+//Listening for postgres notifications
+async function initDbListener({ retries = 10, interval = 3000 } = {}) {
+	let client;
+	for (let attempt = 1; attempt <= retries; attempt++) {
+		try {
+			client = await pool.connect();
+			console.log(
+				"Connected to Postgres for notifications (attempt",
+				attempt,
+				")"
+			);
+			break;
+		} catch (err) {
+			console.warn(
+				`Postgres not ready (attempt ${attempt}): ${err.message}`
+			);
+			if (attempt === retries) {
+				console.error(
+					"Max retries reached. Could not connect to Postgres for LISTEN."
+				);
+				return;
+			}
+			await new Promise((r) => setTimeout(r, interval));
+		}
+	}
+
+	if (!client) return;
+
+	client.on("error", (err) => {
+		console.error("LISTEN client error:", err);
+	});
+
+	client.on("notification", (msg) => {
+		if (msg.channel === "stats_channel") {
+			console.log("DB change received:", msg.payload);
+			io.emit("statsChanged");
+		}
+	});
+
+	try {
+		await client.query("LISTEN stats_channel");
+		console.log("Listening for Postgres notifications on 'stats_channel'");
+	} catch (err) {
+		console.error("Failed to init LISTEN client:", err);
+	}
+}
+
+initDbListener();
 
 passport.serializeUser((user, done) => {
 	done(null, {
@@ -93,6 +148,11 @@ function ensureAuth(req, res, next) {
 	return res.redirect("/login");
 }
 
+// --- Get Current User ---
+function getCurrentUser(req) {
+	return req.session.user ? req.session.user : null;
+}
+
 async function getDashboardStats(pool, userId) {
 	let upcomingCount = "-";
 	let attendedCount = "-";
@@ -102,40 +162,44 @@ async function getDashboardStats(pool, userId) {
 		//Fetch number of upcoming events for user
 		//Sum of future events user is hosting + future events user is RSVPed as 'going'
 		const upcomingHostedResult = await pool.query(
-			`SELECT COUNT(*) AS count FROM events
+			`SELECT event_id FROM events
       WHERE host_id = $1
       AND start_time >= CURRENT_TIMESTAMP`,
 			[userId]
 		);
 		const upcomingGoingResult = await pool.query(
-			`SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id
+			`SELECT r.event_id FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id
       WHERE r.user_id = $1
       AND e.start_time >= CURRENT_TIMESTAMP
       AND r.status = 'going'`,
 			[userId]
 		);
-		upcomingCount =
-			parseInt(upcomingHostedResult.rows[0].count, 10) +
-			parseInt(upcomingGoingResult.rows[0].count, 10);
+		const uniqueUpcomingEvents = new Set([
+			...upcomingHostedResult.rows.map((row) => row.event_id),
+			...upcomingGoingResult.rows.map((row) => row.event_id),
+		]);
+		upcomingCount = uniqueUpcomingEvents.size;
 
 		//Fetch number of attended events for user
 		//Sum of past events user has hosted + past events user had RSVPed as 'going'
 		const attendedHostedResult = await pool.query(
-			`SELECT COUNT(*) AS count FROM events
+			`SELECT event_id FROM events
       WHERE host_id = $1
       AND start_time < CURRENT_TIMESTAMP`,
 			[userId]
 		);
 		const attendedGoingResult = await pool.query(
-			`SELECT COUNT(*) AS count FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id
+			`SELECT r.event_id FROM rsvps r LEFT JOIN events e ON r.event_id = e.event_id
       WHERE r.user_id = $1
       AND e.start_time < CURRENT_TIMESTAMP
       AND r.status = 'going'`,
 			[userId]
 		);
-		attendedCount =
-			parseInt(attendedHostedResult.rows[0].count, 10) +
-			parseInt(attendedGoingResult.rows[0].count, 10);
+		const uniqueAttendedEvents = new Set([
+			...attendedHostedResult.rows.map((row) => row.event_id),
+			...attendedGoingResult.rows.map((row) => row.event_id),
+		]);
+		attendedCount = uniqueAttendedEvents.size;
 
 		//Fetch number of unread notifications for user
 		const notifResult = await pool.query(
@@ -155,6 +219,12 @@ async function getDashboardStats(pool, userId) {
 		notifications: notificationCount,
 	};
 }
+
+// Used by client-side to update stats bar in real-time
+app.get("/getDashboardStats", ensureAuth, async (req, res) => {
+	const stats = await getDashboardStats(pool, req.user.user_id);
+	res.json(stats);
+});
 
 app.get("/", (req, res) => {
 	if (req.session.passport && req.session.passport.user) {
@@ -705,6 +775,12 @@ app.delete("/events/:id", async (req, res) => {
 	}
 });
 
+app.get("/events/:id/view", ensureAuth, (req, res) => {
+	const { id } = req.params;
+	if (!isUUID(id)) return res.status(400).send("Invalid event id");
+	return res.redirect(`/events?view=${id}`); // <-- exactly this
+});
+
 // --- RSVPS ---
 app.post("/events/:id/rsvp", async (req, res) => {
 	try {
@@ -740,6 +816,9 @@ app.post("/events/:id/rsvp", async (req, res) => {
 			status,
 			waitlist_position,
 		]);
+		if (req.query.ui === "1") {
+			return res.redirect(`/events?view=${event_id}`);
+		}
 		res.status(201).json(rows[0]);
 	} catch (e) {
 		if (e.code === "23503")
@@ -1186,27 +1265,246 @@ app.post("/profile/notification", ensureAuth, async (req, res) => {
 
 app.get("/events", ensureAuth, async (req, res) => {
 	try {
-		const stats = await getDashboardStats(pool, req.user.user_id);
+		const userId = req.user.user_id;
+		const stats = await getDashboardStats(pool, userId);
 
-		const q = `
-      SELECT event_id, title, location, start_time, end_time, capacity
-      FROM events
-      WHERE visibility = 'public'
-        AND start_time >= NOW()
-      ORDER BY start_time ASC
-      LIMIT 200;
-    `;
-		const { rows } = await pool.query(q);
+		const { rows: events } = await pool.query(
+			`
+      SELECT e.event_id, e.title, e.location, e.start_time, e.end_time, e.capacity
+      FROM events e
+      WHERE (e.visibility = 'public' OR e.host_id = $1)
+        AND e.start_time >= NOW()
+      ORDER BY e.start_time ASC
+      LIMIT 200
+    `,
+			[userId]
+		);
+
+		const viewId = req.query.view;
+		let detailEvent = null;
+		let myRsvp = null;
+
+		if (viewId && isUUID(viewId)) {
+			const { rows } = await pool.query(
+				`
+        SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
+               e.capacity, e.waitlist, e.visibility, e.content,
+               u.user_id AS host_id, u.display_name AS host_name,
+               COALESCE(v.going_count,0) AS going_count
+        FROM events e
+        JOIN users u ON u.user_id = e.host_id
+        LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
+        WHERE e.event_id = $1
+      `,
+				[viewId]
+			);
+			if (rows.length) {
+				detailEvent = rows[0];
+				const mine = await pool.query(
+					`SELECT status, waitlist_position
+             FROM rsvps WHERE event_id = $1 AND user_id = $2`,
+					[viewId, userId]
+				);
+				myRsvp = mine.rows[0] || null;
+			}
+		}
 
 		res.render("dashboard", {
 			panel: "events",
-			events: rows,
+			events,
+			detailEvent,
+			myRsvp,
 			displayName: req.user.display_name,
+			email: req.user.email,
+			notification_setting: req.user.notification_setting,
 			stats,
+			user_id: userId,
 		});
 	} catch (e) {
 		console.error("Failed to render Event Dashboard:", e.message);
 		res.status(500).send("Could not load events.");
+	}
+});
+
+// ---------- YOUR EVENTS (UI + actions) ----------
+function requireOwner(userId) {
+	return async (eventId) => {
+		const r = await pool.query(
+			"SELECT 1 FROM events WHERE event_id = $1 AND host_id = $2",
+			[eventId, userId]
+		);
+		return r.rowCount > 0;
+	};
+}
+
+// Show only the events I host
+app.get("/your-events", ensureAuth, async (req, res) => {
+	try {
+		const editingId = req.query.edit || null;
+		const stats = await getDashboardStats(pool, req.user.user_id); // <-- add this
+
+		const q = `
+      SELECT e.event_id, e.title, e.location, e.start_time, e.end_time,
+             e.capacity, e.visibility,
+             COALESCE(v.going_count,0) AS going_count,
+             COALESCE(v.interested_count,0) AS interested_count,
+             COALESCE(v.waitlisted_count,0) AS waitlisted_count
+      FROM events e
+      LEFT JOIN event_attendance_counts v ON v.event_id = e.event_id
+      WHERE e.host_id = $1
+      ORDER BY e.start_time DESC`;
+		const { rows } = await pool.query(q, [req.user.user_id]);
+
+		return res.render("dashboard", {
+			panel: "your-events",
+			events: rows,
+			editingId,
+			displayName: req.user.display_name,
+			email: req.user.email,
+			notification_setting: req.user.notification_setting,
+			saved: false,
+			stats,
+		});
+	} catch (e) {
+		console.error("GET /your-events failed:", e);
+		return res.status(500).send("Could not load your events.");
+	}
+});
+
+// Create a new event (simple form POST)
+app.post("/your-events", ensureAuth, async (req, res) => {
+	try {
+		const {
+			title,
+			location = null,
+			start_time,
+			end_time = null,
+			visibility = "public",
+			capacity = null,
+			content = null,
+		} = req.body || {};
+
+		if (!title || !start_time) {
+			return res.status(400).send("Title and start time are required.");
+		}
+
+		await pool.query(
+			`INSERT INTO events
+       (host_id, title, location, start_time, end_time, visibility, capacity, waitlist, content)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8)`,
+			[
+				req.user.user_id,
+				title,
+				location,
+				start_time,
+				end_time,
+				visibility,
+				capacity,
+				content,
+			]
+		);
+		return res.redirect("/your-events");
+	} catch (e) {
+		console.error("POST /your-events failed:", e);
+		return res.status(500).send("Could not create event.");
+	}
+});
+
+// Post an announcement (owner-only), then return to Your Events
+app.post("/your-events/:id/announce", ensureAuth, async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { content, scheduled_release = null } = req.body || {};
+		if (!content)
+			return res.status(400).send("Announcement content required.");
+
+		const owns = await requireOwner(req.user.user_id)(id);
+		if (!owns) return res.status(403).send("Not your event.");
+
+		await pool.query(
+			`INSERT INTO announcements (event_id, host_id, content, scheduled_release)
+       VALUES ($1,$2,$3,$4)`,
+			[id, req.user.user_id, content, scheduled_release]
+		);
+		return res.redirect("/your-events");
+	} catch (e) {
+		console.error("POST /your-events/:id/announce failed:", e);
+		return res.status(500).send("Could not create announcement.");
+	}
+});
+
+// Delete an event (owner-only). Cascades to RSVPs/announcements/invitations via FKs.
+app.post("/your-events/:id/delete", ensureAuth, async (req, res) => {
+	try {
+		const { id } = req.params;
+		const r = await pool.query(
+			`DELETE FROM events WHERE event_id = $1 AND host_id = $2`,
+			[id, req.user.user_id]
+		);
+		if (!r.rowCount) return res.status(403).send("Not your event.");
+		return res.redirect("/your-events");
+	} catch (e) {
+		console.error("POST /your-events/:id/delete failed:", e);
+		return res.status(500).send("Could not delete event.");
+	}
+});
+
+// Update (edit) an event I own
+app.post("/your-events/:id/update", ensureAuth, async (req, res) => {
+	try {
+		const { id } = req.params;
+		const {
+			title,
+			location = null,
+			start_time,
+			end_time = null,
+			visibility = "public",
+			capacity = null,
+			content = null,
+		} = req.body || {};
+
+		// must own it
+		const owns = await pool.query(
+			"SELECT 1 FROM events WHERE event_id=$1 AND host_id=$2",
+			[id, req.user.user_id]
+		);
+		if (!owns.rowCount) return res.status(403).send("Not your event.");
+
+		if (!title || !start_time) {
+			return res.status(400).send("Title and start time are required.");
+		}
+
+		await pool.query(
+			`UPDATE events
+         SET title=$1,
+             location=$2,
+             start_time=$3,
+             end_time=$4,
+             visibility=$5,
+             capacity=$6,
+             content=$7
+       WHERE event_id=$8 AND host_id=$9`,
+			[
+				title,
+				location,
+				start_time,
+				end_time,
+				visibility,
+				capacity === ""
+					? null
+					: Number.isFinite(+capacity)
+					? +capacity
+					: null,
+				content,
+				id,
+				req.user.user_id,
+			]
+		);
+
+		return res.redirect("/your-events");
+	} catch (e) {
+		console.error("POST /your-events/:id/update failed:", e);
+		return res.status(500).send("Could not update event.");
 	}
 });
 
@@ -1284,6 +1582,8 @@ app.get("/rsvpd", ensureAuth, async (req, res) => {
       FROM rsvps r
       JOIN events e ON e.event_id = r.event_id
       WHERE r.user_id = $1
+		AND e.start_time >= NOW()
+		AND r.status IN ('going', 'waitlisted', 'interested')
       ORDER BY e.start_time ASC
       `,
 			[userId]
@@ -1304,7 +1604,7 @@ app.get("/rsvpd", ensureAuth, async (req, res) => {
 
 // --- Start server & verify DB connectivity once ---
 const port = Number(process.env.PORT || 3000);
-app.listen(port, async () => {
+appServer.listen(port, async () => {
 	try {
 		await pool.query("SELECT 1");
 		console.log(

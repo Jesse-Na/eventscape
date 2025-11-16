@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>EventScape — Dashboard</title>
-  <link rel="stylesheet" href="globals.css" />
+  <link rel="stylesheet" href="global.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 
@@ -31,9 +31,98 @@
           
           <% if (_panel==='events' ) { %>
             <section class="events-panel">
-              <h2>Upcoming Events</h2>
+                <div class="events-panel__header">
+                  <h2 class="events-panel__title">
+                    <% if (typeof detailEvent !== 'undefined' && detailEvent) { %>
+                      <%= detailEvent.title %>
+                    <% } else { %>
+                      Upcoming Events
+                    <% } %>
+                  </h2>
 
-              <% if (hasEvents) { %>
+                  <% if (typeof detailEvent !== 'undefined' && detailEvent) { %>
+                    <a class="btn-back" href="/events">Back to all</a>
+                  <% } %>
+                </div>
+
+              <% if (typeof detailEvent !== 'undefined' && detailEvent) { %>
+                <div class="card event-detail-card">
+                  <div class="event-detail__meta">
+                    <div><strong>Host:</strong> <%= detailEvent.host_name %></div>
+                    <div><strong>Location:</strong> <%= detailEvent.location || '—' %></div>
+                    <div><strong>Starts:</strong> <%= new Date(detailEvent.start_time).toLocaleString() %></div>
+                    <div><strong>Ends:</strong> <%= detailEvent.end_time ? new Date(detailEvent.end_time).toLocaleString() : '—' %></div>
+                    <div>
+                      <strong>Capacity:</strong> <%= (detailEvent.capacity ?? '—') %>
+                      <% if (detailEvent.capacity !== null) { %>(<%= detailEvent.going_count %> going)<% } %>
+                    </div>
+                    <% if (detailEvent.capacity !== null) { %>
+                      <div>
+                        <strong>Spots left:</strong>
+                        <%= Math.max(detailEvent.capacity - detailEvent.going_count, 0) %>
+                      </div>
+                    <% } %>
+                    <div><strong>Visibility:</strong> <%= detailEvent.visibility %></div>
+                  </div>
+
+                  <% if (detailEvent.content) { %>
+                    <div class="event-detail__desc"><%= detailEvent.content %></div>
+                  <% } %>
+
+                  <% if (myRsvp && myRsvp.status && myRsvp.status !== 'cancelled') { %>
+                    <p class="event-detail__status">
+                      <% if (myRsvp.status === 'going') { %>
+                        You’re going to this event.
+                      <% } else if (myRsvp.status === 'waitlisted') { %>
+                        You’re on the waitlist for this event.
+                      <% } %>
+                    </p>
+                  <% } %>
+
+                  <div class="event-detail__actions">
+                    <% if (detailEvent.host_id === user_id) { %>
+                      <span class="host-label">You’re hosting this event.</span>
+                      <a class="btn secondary" href="/your-events?edit=<%= detailEvent.event_id %>">Edit event</a>
+                    <% } else if (myRsvp && myRsvp.status === 'going') { %>
+                      <!-- Cancel RSVP -->
+                      <form method="POST" action="/events/<%= detailEvent.event_id %>/rsvp?ui=1">
+                        <input type="hidden" name="user_id" value="<%= user_id %>">
+                        <input type="hidden" name="status" value="cancelled">
+                        <button type="submit" class="btn btn-danger">Cancel RSVP</button>
+                      </form>
+                    <% } else if (myRsvp && myRsvp.status === 'waitlisted') { %>
+                      <!-- Cancel waitlist -->
+                      <form method="POST" action="/events/<%= detailEvent.event_id %>/rsvp?ui=1">
+                        <input type="hidden" name="user_id" value="<%= user_id %>">
+                        <input type="hidden" name="status" value="cancelled">
+                        <button type="submit" class="btn btn-danger">Leave waitlist</button>
+                      </form>
+                    <% } else { %>
+                      <% if (detailEvent.capacity === null || detailEvent.going_count < detailEvent.capacity) { %>
+                        <!-- RSVP Going -->
+                        <form method="POST" action="/events/<%= detailEvent.event_id %>/rsvp?ui=1">
+                          <input type="hidden" name="user_id" value="<%= user_id %>">
+                          <input type="hidden" name="status" value="going">
+                          <button type="submit" class="btn">RSVP</button>
+                        </form>
+                      <% } else { %>
+                        <% if (detailEvent.waitlist) { %>
+                          <!-- Join waitlist -->
+                          <form method="POST" action="/events/<%= detailEvent.event_id %>/rsvp?ui=1">
+                            <input type="hidden" name="user_id" value="<%= user_id %>">
+                            <input type="hidden" name="status" value="waitlisted">
+                            <button type="submit" class="btn">Join waitlist</button>
+                          </form>
+                        <% } else { %>
+                          <p class="full-msg">This event is full.</p>
+                        <% } %>
+                      <% } %>
+                    <% } %>
+                  </div>
+                </div>
+              <% } %>
+
+              <% if (!detailEvent && hasEvents) { %>
                 <table class="events-table">
                   <thead>
                     <tr>
@@ -48,28 +137,155 @@
                     <% _events.forEach(function(e){ %>
                       <tr>
                         <td>
-                          <%= e.title %>
+                          <a class="event-link" href="/events?view=<%= e.event_id %>"><%= e.title %></a>
                         </td>
-                        <td>
-                          <%= e.location || '—' %>
-                        </td>
-                        <td>
-                          <%= new Date(e.start_time).toLocaleString() %>
-                        </td>
-                        <td>
-                          <%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %>
-                        </td>
-                        <td>
-                          <%= (e.capacity===null || e.capacity===undefined) ? '—' : e.capacity %>
-                        </td>
+                        <td><%= e.location || '—' %></td>
+                        <td><%= new Date(e.start_time).toLocaleString() %></td>
+                        <td><%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %></td>
+                        <td><%= (e.capacity===null || e.capacity===undefined) ? '—' : e.capacity %></td>
                       </tr>
-                      <% }); %>
+                    <% }) %>
                   </tbody>
                 </table>
-                <% } else { %>
-                  <p class="no-events-msg">No upcoming events.</p>
-                  <% } %>
+              <% } else if (!detailEvent) { %>
+                <p class="no-events-msg">No upcoming events.</p>
+              <% } %>
             </section>
+
+            <!-- Code for your-events -->
+            <% } else if (_panel==='your-events' ) { %>
+              
+              <section class="events-panel">
+                <h2>Your Events</h2>
+
+                <table class="events-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Location</th>
+                      <th>Start Time</th>
+                      <th>End Time</th>
+                      <th>Capacity</th>
+                      <th>Going</th>
+                      <th>Announce</th>
+                      <th>Edit</th>
+                      <th>Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% if (hasEvents) { _events.forEach(function(e){ 
+                        var editing = (typeof editingId !== 'undefined' && editingId && (editingId === e.event_id));
+                    %>
+                      <% if (!editing) { %>
+                        <!-- NORMAL ROW -->
+                        <tr>
+                          <td><a class="event-link" href="/events?view=<%= e.event_id %>"><%= e.title %></a></td>
+                          <td><%= e.location || '—' %></td>
+                          <td><%= new Date(e.start_time).toLocaleString() %></td>
+                          <td><%= e.end_time ? new Date(e.end_time).toLocaleString() : '—' %></td>
+                          <td><%= (e.capacity ?? '—') %></td>
+                          <td><%= e.going_count %></td>
+
+                          <!-- Announce -->
+                          <td class="announce-cell">
+                            <form method="POST" action="/your-events/<%= e.event_id %>/announce">
+                              <div class="announce-col">
+                                <input name="content" type="text" placeholder="Announcement content" required />
+                                <button type="submit">Announce</button>
+                              </div>
+                            </form>
+                          </td>
+
+                          <!-- Edit -->
+                          <td class="edit-cell">
+                            <a class="btn" href="/your-events?edit=<%= e.event_id %>">Edit</a>
+                          </td>
+
+                          <!-- Delete -->
+                          <td>
+                            <form method="POST" action="/your-events/<%= e.event_id %>/delete"
+                                  onsubmit="return confirm('Delete this event? This cannot be undone.');">
+                              <button type="submit" class="danger">Delete</button>
+                            </form>
+                          </td>
+                        </tr>
+                      <% } else { %>
+                        <!-- EDIT MODE ROW -->
+                        <% var formId = 'editForm-' + e.event_id; %>
+                        <form id="<%= formId %>" method="POST" action="/your-events/<%= e.event_id %>/update"></form>
+                        <tr class="edit-row">
+                          <td><input form="<%= formId %>" name="title" value="<%- e.title %>" required /></td>
+                          <td><input form="<%= formId %>" name="location" value="<%- e.location || '' %>" /></td>
+                          <td><input form="<%= formId %>" type="datetime-local" name="start_time"
+                                    value="<%= new Date(e.start_time).toISOString().slice(0,16) %>" required /></td>
+                          <td><input form="<%= formId %>" type="datetime-local" name="end_time"
+                                    value="<%= e.end_time ? new Date(e.end_time).toISOString().slice(0,16) : '' %>" /></td>
+                          <td><input form="<%= formId %>" type="number" name="capacity" min="0"
+                                    value="<%= (e.capacity ?? '') %>" /></td>
+                          <td><%= e.going_count %></td>
+
+                          <!-- Announce column stays empty in edit mode -->
+                          <td></td>
+
+                          <!-- Save / Cancel -->
+                          <td>
+                            <button form="<%= formId %>" type="submit">Save</button>
+                            <a class="btn secondary" href="/your-events">Cancel</a>
+                          </td>
+
+                          <!-- Delete -->
+                          <td>
+                            <form method="POST" action="/your-events/<%= e.event_id %>/delete"
+                                  onsubmit="return confirm('Delete this event? This cannot be undone.');">
+                              <button type="submit" class="danger">Delete</button>
+                            </form>
+                          </td>
+                        </tr>
+                      <% } %>
+                    <% }); } else { %>
+                      <tr><td colspan="9" class="no-events-msg">You haven’t created any events yet.</td></tr>
+                    <% } %>
+                  </tbody>
+                </table>
+
+                <hr />
+
+                <h3>Create new event</h3>
+                <form id="createForm" method="POST" action="/your-events"></form>
+
+                <table class="events-table create-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Location</th>
+                      <th>Start Time</th>
+                      <th>End Time</th>
+                      <th>Capacity</th>
+                      <th>Visibility</th>
+                      <th><!-- submit --></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input form="createForm" name="title" placeholder="Title" required /></td>
+                      <td><input form="createForm" name="location" placeholder="Location" /></td>
+                      <td><input form="createForm" type="datetime-local" name="start_time" required /></td>
+                      <td><input form="createForm" type="datetime-local" name="end_time" /></td>
+                      <td><input form="createForm" type="number" name="capacity" min="0" placeholder="—" /></td>
+                      <td>
+                        <select form="createForm" name="visibility">
+                          <option value="public">public</option>
+                          <option value="private">private</option>
+                          <option value="unlisted">unlisted</option>
+                        </select>
+                      </td>
+                      <td><button form="createForm" type="submit">Create event</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+
+              </section>
+
 
             <% } else if (_panel==='profile' ) { %>
               <section class="profile-panel">
@@ -195,7 +411,7 @@
                           <% _rsvpd.forEach(function(r){ %>
                             <tr>
                               <td>
-                                <%= r.event_title %>
+                                <a class="event-link" href="/events?view=<%= r.event_id %>"><%= r.event_title %></a>
                               </td>
                               <td>
                                 <%= r.location %>
@@ -217,7 +433,7 @@
                         <p class="empty-state">No RSVPs to view</p>
                         <% } %>
                   </section>
-                  <% } %>
+                <% } %>
       </div>
 
       <!-- Light grey content boxes -->
@@ -228,14 +444,19 @@
 
       <!-- Stats header overlay -->
       <img class="stats-header" src="stats-header.svg" alt="" aria-hidden="true" />
+      <% 
+        var _stats = (typeof stats === 'object' && stats)
+          ? stats
+          : { upcoming: '—', attended: '—', notifications: '—' };
+      %>
       <div class="stat stat--upcoming">
-        <%= stats.upcoming %>
+        <%= _stats.upcoming %>
       </div>
       <div class="stat stat--attended">
-        <%= stats.attended %>
+        <%= _stats.attended %>
       </div>
       <div class="stat stat--notifications">
-        <%= stats.notifications %>
+        <%= _stats.notifications %>
       </div>
 
       <!-- Sidebar text items -->
@@ -284,6 +505,33 @@
         }
         greeting.style.width = maxWidth + "px";
         greeting.style.textAlign = "center";
+      });
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      function updateStat(id, newValue) {
+        const el = document.getElementById(id);
+        if (el && el.innerText !== String(newValue)) {
+          el.innerText = newValue;
+          el.classList.add("updated");
+          setTimeout(() => el.classList.remove("updated"), 400);
+        }
+      }
+
+      socket.on("statsChanged", async () => {
+        try {
+          const response = await fetch("/getDashboardStats");
+          const stats = await response.json();
+
+          //update DOM
+          updateStat("upcoming-count", stats.upcoming);
+          updateStat("attended-count", stats.attended);
+          updateStat("notifications-count", stats.notifications);
+        } catch (err) {
+          console.error("Error updating stats:", err);
+        }
       });
     </script>
 </body>
