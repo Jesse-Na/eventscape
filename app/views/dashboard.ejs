@@ -327,7 +327,7 @@
                     <table class="events-table">
                       <thead>
                         <tr>
-                          <th>Title</th>
+                          <th>Announcement</th>
                           <th>Event</th>
                           <th>Posted</th>
                         </tr>
@@ -336,7 +336,7 @@
                         <% _announcements.forEach(function(a){ %>
                           <tr>
                             <td>
-                              <%= a.announcement_title %>
+                              <%= a.announcement_content %>
                             </td>
                             <td>
                               <%= a.event_title || '—' %>
