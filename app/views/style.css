@@ -948,7 +948,7 @@ button.sign-up-link:active {
   text-decoration: underline;
 }
 
-/* inline details card to match your cards */
+/* inline details card */
 .event-detail-card {
   margin-bottom: 16px;
 }
@@ -991,4 +991,45 @@ button.sign-up-link:active {
 .btn.btn-danger {
   background: #fbeaea;
   border: 1px solid #f2c7c7;
+}
+
+/* Events panel header (title + back button) */
+.events-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.events-panel__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* Back-to-all button style */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #cfd6dd;
+  background: #f7f9fb;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #0F1320;
+  cursor: pointer;
+}
+
+.btn-back:hover {
+  background: #eef3f8;
+}
+
+.event-detail__status {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #1a7f37; /* subtle green */
 }

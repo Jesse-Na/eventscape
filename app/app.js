@@ -1356,7 +1356,7 @@ app.post("/your-events", ensureAuth, async (req, res) => {
     await pool.query(
       `INSERT INTO events
        (host_id, title, location, start_time, end_time, visibility, capacity, waitlist, content)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,false,$8)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8)`,
       [
         req.user.user_id,
         title,
@@ -1546,6 +1546,8 @@ app.get("/rsvpd", ensureAuth, async (req, res) => {
       FROM rsvps r
       JOIN events e ON e.event_id = r.event_id
       WHERE r.user_id = $1
+		AND e.start_time >= NOW()
+		AND r.status IN ('going', 'waitlisted', 'interested')
       ORDER BY e.start_time ASC
       `,
       [userId]

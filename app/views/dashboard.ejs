@@ -31,15 +31,22 @@
           
           <% if (_panel==='events' ) { %>
             <section class="events-panel">
-              <h2>Upcoming Events</h2>
+                <div class="events-panel__header">
+                  <h2 class="events-panel__title">
+                    <% if (typeof detailEvent !== 'undefined' && detailEvent) { %>
+                      <%= detailEvent.title %>
+                    <% } else { %>
+                      Upcoming Events
+                    <% } %>
+                  </h2>
+
+                  <% if (typeof detailEvent !== 'undefined' && detailEvent) { %>
+                    <a class="btn-back" href="/events">Back to all</a>
+                  <% } %>
+                </div>
 
               <% if (typeof detailEvent !== 'undefined' && detailEvent) { %>
                 <div class="card event-detail-card">
-                  <div class="event-detail__header">
-                    <h2 class="event-detail__title"><%= detailEvent.title %></h2>
-                    <a class="btn btn-link" href="/events">Back to all</a>
-                  </div>
-
                   <div class="event-detail__meta">
                     <div><strong>Host:</strong> <%= detailEvent.host_name %></div>
                     <div><strong>Location:</strong> <%= detailEvent.location || '—' %></div>
@@ -49,19 +56,46 @@
                       <strong>Capacity:</strong> <%= (detailEvent.capacity ?? '—') %>
                       <% if (detailEvent.capacity !== null) { %>(<%= detailEvent.going_count %> going)<% } %>
                     </div>
+                    <% if (detailEvent.capacity !== null) { %>
+                      <div>
+                        <strong>Spots left:</strong>
+                        <%= Math.max(detailEvent.capacity - detailEvent.going_count, 0) %>
+                      </div>
+                    <% } %>
+                    <div><strong>Visibility:</strong> <%= detailEvent.visibility %></div>
                   </div>
 
                   <% if (detailEvent.content) { %>
                     <div class="event-detail__desc"><%= detailEvent.content %></div>
                   <% } %>
 
+                  <% if (myRsvp && myRsvp.status && myRsvp.status !== 'cancelled') { %>
+                    <p class="event-detail__status">
+                      <% if (myRsvp.status === 'going') { %>
+                        You’re going to this event.
+                      <% } else if (myRsvp.status === 'waitlisted') { %>
+                        You’re on the waitlist for this event.
+                      <% } %>
+                    </p>
+                  <% } %>
+
                   <div class="event-detail__actions">
-                    <% if (myRsvp && myRsvp.status === 'going') { %>
+                    <% if (detailEvent.host_id === user_id) { %>
+                      <span class="host-label">You’re hosting this event.</span>
+                      <a class="btn secondary" href="/your-events?edit=<%= detailEvent.event_id %>">Edit event</a>
+                    <% } else if (myRsvp && myRsvp.status === 'going') { %>
                       <!-- Cancel RSVP -->
                       <form method="POST" action="/events/<%= detailEvent.event_id %>/rsvp?ui=1">
                         <input type="hidden" name="user_id" value="<%= user_id %>">
                         <input type="hidden" name="status" value="cancelled">
                         <button type="submit" class="btn btn-danger">Cancel RSVP</button>
+                      </form>
+                    <% } else if (myRsvp && myRsvp.status === 'waitlisted') { %>
+                      <!-- Cancel waitlist -->
+                      <form method="POST" action="/events/<%= detailEvent.event_id %>/rsvp?ui=1">
+                        <input type="hidden" name="user_id" value="<%= user_id %>">
+                        <input type="hidden" name="status" value="cancelled">
+                        <button type="submit" class="btn btn-danger">Leave waitlist</button>
                       </form>
                     <% } else { %>
                       <% if (detailEvent.capacity === null || detailEvent.going_count < detailEvent.capacity) { %>
