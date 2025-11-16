@@ -25,23 +25,16 @@ spec:
                       - containerPort: 3000
                   env:
                       - name: DB_HOST
-                        value: "postgres"
+                        value: postgres
                       - name: DB_PORT
                         value: "5432"
                       - name: DB_USER
-                        value: "postgres"
-                      - name: DB_PASSWORD
-                        valueFrom:
-                            secretKeyRef:
-                                name: secrets
-                                key: DB_PASSWORD
+                        value: postgres
                       - name: DB_NAME
-                        value: "postgres"
-                      - name: SESSION_SECRET
-                        valueFrom:
-                            secretKeyRef:
-                                name: secrets
-                                key: SESSION_SECRET
+                        value: postgres
+                  envFrom:
+                      - secretRef:
+                            name: secrets
                   readinessProbe:
                       httpGet:
                           path: /status

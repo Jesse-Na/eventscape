@@ -1,6 +1,9 @@
 node_modules/
-.env
+*.env
 app/node_modules/
 .env.*
 kube-state-metrics/
 *.DS_Store
+
+# Ignore API keys and secrets
+overlays/prod/secrets.yaml

@@ -3,6 +3,7 @@
 ## How to run locally using Docker Compose
 
 -   To start the project
+    -   Create a .env file at the same level as the compose yaml and inside it put your _SENDGRID_API_KEY_.
     -   Run `docker compose up --build -d`
 -   To stop the project
     -   Run `docker compose down`
@@ -16,6 +17,8 @@
         -   `minikube start`
         -   `docker build -t eventscape-app:1.0 .`
         -   `minikube image load eventscape-app:1.0`
+        -   Inside the `base` folder you will also need to create your own `.env.secret` file.
+            -   The following keys are required: _SENDGRID_API_KEY_, _SESSION_SECRET_, and _DB_PASSWORD_
         -   `kubectl apply -k overlays/dev`
         -   `kubectl get pods`
             -   Wait till both pods are 1/1
@@ -41,6 +44,7 @@
 -   Tag and push image `docker tag eventscape-app:amd64 sodiumna11/eventscape-app` and `docker push sodiumna11/eventscape-app`
     -   To use your own Docker account, replace `sodiumna11` with your username and update `overlays/prod/app-deployment.yaml` accordingly.
 -   Deploy the cluster to DigitalOcean `kubectl apply -k overlays/prod`
+    -   Again, ensure you have `.env.secret` file inside the `base` folder.
 -   Wait until all pods are ready `kubectl get pods`
 -   Run `kubectl get services` to find out the external IP of the node-app. Copy the IP and paste it into a browser (e.g. http://159.203.54.195).
 -   To remove the current deployment, run `kubectl delete -k overlays/prod`
