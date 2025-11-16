@@ -86,6 +86,65 @@ async function initDbListener({ retries = 10, interval = 3000 } = {}) {
 	}
 }
 
+// Helper: send in-app + (stub) email notifications for an announcement
+async function notifyUsersOfAnnouncement(eventId, announcementId) {
+  try {
+    // Everyone going / interested / waitlisted for this event
+    const { rows: recipients } = await pool.query(
+      `
+      WITH recipient_ids AS (
+        -- All attendees / interested / waitlisted
+        SELECT r.user_id
+        FROM rsvps r
+        WHERE r.event_id = $1
+          AND r.status IN ('going', 'interested', 'waitlisted')
+
+        UNION
+
+        -- The host of the event
+        SELECT e.host_id
+        FROM events e
+        WHERE e.event_id = $1
+      )
+      SELECT
+        u.user_id,
+        u.email,
+        COALESCE(u.notification_setting, 'all') AS notification_setting
+      FROM recipient_ids r
+      JOIN users u ON u.user_id = r.user_id
+      `,
+      [eventId]
+    );
+
+    for (const rec of recipients) {
+      const pref = rec.notification_setting || "all";
+      const wantsInApp = pref === "in_app" || pref === "all";
+      const wantsEmail = pref === "email" || pref === "all";
+
+      if (wantsInApp) {
+        // Show up in Inbox + increment unread notification count
+        await pool.query(
+          `
+          INSERT INTO notifications (user_id, type, announcement_id, is_read)
+          VALUES ($1, 'announcement', $2, FALSE)
+          `,
+          [rec.user_id, announcementId]
+        );
+      }
+
+      if (wantsEmail) {
+        // Stubbed email sending: replace with real mailer later
+        console.log(
+          `[email stub] Send announcement ${announcementId} for event ${eventId} to ${rec.email}`
+        );
+      }
+    }
+  } catch (err) {
+    console.error("Failed to create announcement notifications:", err);
+  }
+}
+
+
 initDbListener();
 
 passport.serializeUser((user, done) => {
@@ -964,17 +1023,21 @@ app.post("/events/:id/announcements", async (req, res) => {
 	try {
 		const event_id = req.params.id;
 		const { host_id, content, scheduled_release = null } = req.body || {};
-		if (!isUUID(event_id) || !isUUID(host_id) || !content)
-			return res
-				.status(400)
-				.json({ error: "event_id, host_id (UUID), content required" });
+		if (!content) return res.status(400).send("Announcement content required.");
+
+		const owns = await requireOwner(req.user.user_id)(id);
+		if (!owns) return res.status(403).send("Not your event.");
 
 		const { rows } = await pool.query(
-			`INSERT INTO announcements (event_id, host_id, content, scheduled_release)
-       VALUES ($1,$2,$3,$4)
-       RETURNING announcement_id, event_id, content, scheduled_release, created_at`,
-			[event_id, host_id, content, scheduled_release]
+		`INSERT INTO announcements (event_id, host_id, content, scheduled_release)
+		VALUES ($1,$2,$3,$4)
+		RETURNING announcement_id`,
+		[id, req.user.user_id, content, scheduled_release]
 		);
+
+		const created = rows[0];
+		await notifyUsersOfAnnouncement(event_id, created.announcement_id);
+
 		res.status(201).json(rows[0]);
 	} catch (e) {
 		if (e.code === "23503")
@@ -1421,16 +1484,21 @@ app.post("/your-events/:id/announce", ensureAuth, async (req, res) => {
 		const owns = await requireOwner(req.user.user_id)(id);
 		if (!owns) return res.status(403).send("Not your event.");
 
-		await pool.query(
-			`INSERT INTO announcements (event_id, host_id, content, scheduled_release)
-       VALUES ($1,$2,$3,$4)`,
-			[id, req.user.user_id, content, scheduled_release]
-		);
-		return res.redirect("/your-events");
-	} catch (e) {
-		console.error("POST /your-events/:id/announce failed:", e);
-		return res.status(500).send("Could not create announcement.");
-	}
+    const { rows } = await pool.query(
+      `INSERT INTO announcements (event_id, host_id, content, scheduled_release)
+       VALUES ($1,$2,$3,$4)
+	   RETURNING announcement_id`,
+      [id, req.user.user_id, content, scheduled_release]
+    );
+
+	const annoucementId = rows[0].announcement_id;
+	await notifyUsersOfAnnouncement(id, annoucementId);
+
+    return res.redirect("/your-events");
+  } catch (e) {
+    console.error("POST /your-events/:id/announce failed:", e);
+    return res.status(500).send("Could not create announcement.");
+  }
 });
 
 // Delete an event (owner-only). Cascades to RSVPs/announcements/invitations via FKs.
@@ -1509,26 +1577,26 @@ app.post("/your-events/:id/update", ensureAuth, async (req, res) => {
 });
 
 app.get("/inbox", ensureAuth, async (req, res) => {
-	const userId = req.user.user_id;
-	const stats = await getDashboardStats(pool, req.user.user_id);
-	try {
-		const { rows: announcements } = await pool.query(
-			`
-      SELECT
-        a.announcement_id,
-        COALESCE(e.title, 'Announcement') AS announcement_title,   -- matches EJS
-        a.created_at                       AS announcement_created_at, -- matches EJS
-        e.event_id,
-        e.title                            AS event_title            -- matches EJS
-      FROM notifications n
-      JOIN announcements a ON a.announcement_id = n.announcement_id
-      LEFT JOIN events e    ON e.event_id        = a.event_id
-      WHERE n.user_id = $1
-        AND n.type   = 'announcement'
-      ORDER BY a.created_at DESC
-      `,
-			[userId]
-		);
+  const userId = req.user.user_id;
+  const stats = await getDashboardStats(pool, req.user.user_id);
+  try {
+	const { rows: announcements } = await pool.query(
+	`
+	SELECT
+		a.announcement_id,
+		a.content                         AS announcement_content,
+		a.created_at                      AS announcement_created_at,
+		e.event_id,
+		e.title                           AS event_title
+	FROM notifications n
+	JOIN announcements a ON a.announcement_id = n.announcement_id
+	LEFT JOIN events e    ON e.event_id        = a.event_id
+	WHERE n.user_id = $1
+		AND n.type   = 'announcement'
+	ORDER BY a.created_at DESC
+	`,
+	[userId]
+	);
 
 		const { rows: invitations } = await pool.query(
 			`
