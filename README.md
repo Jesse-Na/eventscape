@@ -60,7 +60,8 @@
 
 ### Deploy digital monitoring agent
 
--   Follow this [guide](https://docs.digitalocean.com/products/kubernetes/how-to/monitor-advanced/)
+-   Follow this [guide](https://docs.digitalocean.com/products/kubernetes/how-to/monitor-advanced/) to deploy the DigitalOcean advanced metrics agent
+-   Run the following to deploy the Kubernetes metrics API `kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml`
 
 ### Testing the deployment
 
