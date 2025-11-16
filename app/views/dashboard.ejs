@@ -168,6 +168,7 @@
                       <th>Capacity</th>
                       <th>Going</th>
                       <th>Announce</th>
+                      <th>Invite</th>
                       <th>Edit</th>
                       <th>Delete</th>
                     </tr>
@@ -192,6 +193,16 @@
                               <div class="announce-col">
                                 <input name="content" type="text" placeholder="Announcement content" required />
                                 <button type="submit">Announce</button>
+                              </div>
+                            </form>
+                          </td>
+
+                          <!-- Invite -->
+                          <td class="invite-cell">
+                            <form method="POST" action="/your-events/<%= e.event_id %>/invite">
+                              <div class="announce-col">
+                                <input name="recipient_email" type="email" placeholder="Invite by email" required />
+                                <button type="submit">Invite</button>
                               </div>
                             </form>
                           </td>
@@ -225,6 +236,9 @@
                           <td><%= e.going_count %></td>
 
                           <!-- Announce column stays empty in edit mode -->
+                          <td></td>
+
+                          <!-- Invite column stays empty in edit mode -->
                           <td></td>
 
                           <!-- Save / Cancel -->
@@ -369,7 +383,7 @@
                         <% _invitations.forEach(function(i){ %>
                           <tr>
                             <td>
-                              <%= i.event_title %>
+                              <a class="event-link" href="/events?view=<%= i.event_id %>"><%= i.event_title %></a>
                             </td>
                             <td>
                               <%= i.location %>

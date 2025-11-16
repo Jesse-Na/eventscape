@@ -144,6 +144,75 @@ async function notifyUsersOfAnnouncement(eventId, announcementId) {
   }
 }
 
+// Helper: create in-app + (stub) email notifications for an invitation
+async function notifyInviteRecipient(invitationId) {
+  try {
+    // Get the invitation details
+    const { rows } = await pool.query(
+      `
+      SELECT
+        i.invitation_id,
+        i.mode,
+        i.recipient_email,
+        i.event_id,
+        i.invited_by,
+        e.title AS event_title,
+        u.display_name AS inviter_name
+      FROM invitations i
+      JOIN events e ON e.event_id = i.event_id
+      JOIN users u ON u.user_id = i.invited_by
+      WHERE i.invitation_id = $1
+      `,
+      [invitationId]
+    );
+    if (!rows.length) return;
+    const inv = rows[0];
+
+    // Only do notification/email flow for email-based invites
+    if (inv.mode !== "email" || !inv.recipient_email) return;
+
+    // Does this email belong to an existing user?
+    const { rows: userRows } = await pool.query(
+      `
+      SELECT user_id, email, notification_setting
+      FROM users
+      WHERE lower(email) = lower($1)
+      `,
+      [inv.recipient_email]
+    );
+
+    // If no account: just an email stub (no in-app notification possible)
+    if (!userRows.length) {
+      console.log(
+        `[email stub] Invite ${inv.invitation_id} to "${inv.event_title}" sent to ${inv.recipient_email}`
+      );
+      return;
+    }
+
+    const recipient = userRows[0];
+    const pref = (recipient.notification_setting || "all").toLowerCase();
+    const wantsInApp = pref === "in_app" || pref === "all";
+    const wantsEmail = pref === "email" || pref === "all";
+
+    if (wantsInApp) {
+      await pool.query(
+        `
+        INSERT INTO notifications (user_id, type, invitation_id, is_read)
+        VALUES ($1, 'invitation', $2, FALSE)
+        `,
+        [recipient.user_id, inv.invitation_id]
+      );
+    }
+
+    if (wantsEmail) {
+      console.log(
+        `[email stub] Invite ${inv.invitation_id} to "${inv.event_title}" emailed to ${recipient.email}`
+      );
+    }
+  } catch (err) {
+    console.error("Failed to notify invite recipient:", err);
+  }
+}
 
 initDbListener();
 
@@ -1162,6 +1231,10 @@ app.post("/invitations", async (req, res) => {
        RETURNING invitation_id, event_id, invited_by, mode, recipient_email, status, created_at`,
 			[event_id, invited_by, mode, recipient_email, message]
 		);
+
+		const invitation = rows[0];
+		await notifyInviteRecipient(invitation.invitation_id);
+
 		res.status(201).json(rows[0]);
 	} catch (e) {
 		if (e.code === "23503")
@@ -1500,6 +1573,37 @@ app.post("/your-events/:id/announce", ensureAuth, async (req, res) => {
     return res.status(500).send("Could not create announcement.");
   }
 });
+
+// Invite someone by email to an event I host
+app.post("/your-events/:id/invite", ensureAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { recipient_email, message = null } = req.body || {};
+
+    if (!recipient_email) {
+      return res.status(400).send("Recipient email is required.");
+    }
+
+    // Must own the event
+    const owns = await requireOwner(req.user.user_id)(id);
+    if (!owns) return res.status(403).send("Not your event.");
+
+    const { rows } = await pool.query(
+      `INSERT INTO invitations (event_id, invited_by, mode, recipient_email, message)
+       VALUES ($1,$2,'email',$3,$4)
+       RETURNING invitation_id`,
+      [id, req.user.user_id, recipient_email, message]
+    );
+
+    await notifyInviteRecipient(rows[0].invitation_id);
+
+    return res.redirect("/your-events");
+  } catch (e) {
+    console.error("POST /your-events/:id/invite failed:", e);
+    return res.status(500).send("Could not send invite.");
+  }
+});
+
 
 // Delete an event (owner-only). Cascades to RSVPs/announcements/invitations via FKs.
 app.post("/your-events/:id/delete", ensureAuth, async (req, res) => {
