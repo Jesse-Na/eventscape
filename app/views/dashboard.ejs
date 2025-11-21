@@ -463,13 +463,13 @@
           ? stats
           : { upcoming: '—', attended: '—', notifications: '—' };
       %>
-      <div class="stat stat--upcoming">
+      <div class="stat stat--upcoming" id="upcoming-count">
         <%= _stats.upcoming %>
       </div>
-      <div class="stat stat--attended">
+      <div class="stat stat--attended" id="attended-count">
         <%= _stats.attended %>
       </div>
-      <div class="stat stat--notifications">
+      <div class="stat stat--notifications" id="notifications-count">
         <%= _stats.notifications %>
       </div>
 
