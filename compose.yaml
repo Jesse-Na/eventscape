@@ -5,7 +5,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: SecurePassword
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: postgres
     volumes:
       - db-data:/var/lib/postgresql/data
@@ -24,11 +24,11 @@ services:
       - "3000:3000"
     environment:
       DB_USER: postgres
-      DB_PASSWORD: SecurePassword
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: postgres
       DB_HOST: db
       DB_PORT: 5432
-      SESSION_SECRET: eventscapesession
+      SESSION_SECRET: ${SESSION_SECRET}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY}
     networks:
       - app-network
