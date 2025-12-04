@@ -118,7 +118,7 @@ The Inbox tab displays all notifications you have received. Announcements come f
 ![Pic9](supporting_images/Pic9.png)
 
 The Profile Settings tab shows your display name and email, and lets you change your notification preferences.
-![Pic10](supporting_images/Pic10.png)
+![Pic10](supporting_images/pic10.png)
 
 Selecting Log Out from the sidebar returns you to the home page, where you can log in again or register a new account.
 
