@@ -41,70 +41,53 @@ The following technologies were used in the implementation of this project:
 
 ## Features
 This section describes the core features offered by EventScape and explains how they fulfill both the course project requirements and our project objectives.
-### User Authentication: Registration, Login, Profile Settings, and Logout
+### 1. User Authentication: Registration, Login, Profile Settings, and Logout
 #### Overview
 EventScape provides a user authentication flow, allowing users to create accounts, log in, modify profile settings, and log out. This supports personalized event dashboards and RSVP management.
 #### Course Project Requirements Fulfilled
-**Persistent Storage**
-All user information, including email, password hash, and display name, is stored in a PostgreSQL database backed by persistent volumes. This allows user data to persist across container restarts and Kubernetes redeployments.
-
-**Containerization and Orchestration**
-User authentication is handled by the node-app Docker container, which is managed by a Kubernetes Deployment. All authentication routes are exposed through a LoadBalancer Service that distributes incoming traffic across pods. The PostgreSQL database runs in a separate Deployment and is accessed internally through a ClusterIP Service, allowing authentication data to be stored and retrieved reliably across restarts.
-
-**Monitoring**
-Traffic is monitored through Fly.io’s built-in dashboard, which provides metrics for CPU, memory usage, and request counts. We track how many users are logged in and Kubernetes distributes traffic across multiple pods through its built-in load balancing. This ensures stable performance even when multiple users log in simultaneously.
-
-**Integration With External Services**
-SendGrid is used to email users a welcome or confirmation message upon registration. This satisfies one of our selected advanced features by integrating a third-party service into our workflow.
+- **Persistent Storage**: All user information, including email, password hash, and display name, is stored in a PostgreSQL database backed by persistent volumes. This allows user data to persist across container restarts and Kubernetes redeployments.
+- **Containerization and Orchestration**: User authentication is handled by the node-app Docker container, which is managed by a Kubernetes Deployment. All authentication routes are exposed through a LoadBalancer Service that distributes incoming traffic across pods. The PostgreSQL database runs in a separate Deployment and is accessed internally through a ClusterIP Service, allowing authentication data to be stored and retrieved reliably across restarts.
+- **Monitoring**: Traffic is monitored through Fly.io’s built-in dashboard, which provides metrics for CPU, memory usage, and request counts. We track how many users are logged in and Kubernetes distributes traffic across multiple pods through its built-in load balancing. This ensures stable performance even when multiple users log in simultaneously.
+- **Integration With External Services**: SendGrid is used to email users a welcome or confirmation message upon registration. This satisfies one of our selected advanced features by integrating a third-party service into our workflow.
 
 #### Achieving Project Objectives
 Allowing anyone to register supports EventScape’s goal of enabling broad access to event participation. A persistent user account enables personalized communication and streamlined interaction before, during, and after events.
 
 
-### Event Creation and Management 
+### 2. Event Creation and Management 
 #### Overview
 Organizers can create, edit, and manage the events they host. The “Your Events” page displays all events created by the logged-in user, including visibility, capacity, and event times.
 #### Course Project Requirements Fulfilled
-**Persistent Storage**
-All event data is stored in the events table, which includes fields for event metadata, timestamps, visibility, and host ID. Persistent volumes ensure events remain intact across redeployments.
-
-**Containerization and Orchestration**
-Event creation and management are served by the node-app deployment, with all event-related routes exposed through the LoadBalancer service for consistent access. The application retrieves and stores event details in the PostgreSQL database via the internal ClusterIP Service, ensuring event data remains reliable across pod restarts
+- **Persistent Storage**: All event data is stored in the events table, which includes fields for event metadata, timestamps, visibility, and host ID. Persistent volumes ensure events remain intact across redeployments.
+- **Containerization and Orchestration**: Event creation and management are served by the node-app deployment, with all event-related routes exposed through the LoadBalancer service for consistent access. The application retrieves and stores event details in the PostgreSQL database via the internal ClusterIP Service, ensuring event data remains reliable across pod restarts
 
 #### Achieving Project Objectives
 This feature fulfills the objective of allowing organizers to create dynamic, up-to-date events rather than depending on static schedules. It improves both flexibility and coordination for event hosts.
 
 
-### Event Dashboard and RSVP’d Events
+### 3. Event Dashboard and RSVP’d Events
 #### Overview
 The Event Dashboard displays all public events with start times in the present or future. Users can browse events, view details, and RSVP. A separate RSVP page allows users to see which events they are attending.
 
 #### Course Project Requirements Fulfilled
-**Persistent Storage**
-All event data is stored in the events table, and all RSVPs are stored in the rsvps table within PostgreSQL. Persistent volumes ensure that both event information and RSVP relationships remain intact across pod restarts and redeployments.
-
-**Containerization and Orchestration**
-The Event Dashboard and RSVP routes are served by the node-app Deployment and exposed through the LoadBalancer Service. Data from the events and rsvps tables is retrieved through the PostgreSQL Deployment via its internal ClusterIP Service, ensuring reliable access even during pod restarts.
-
-**Achieving Project Objectives**
-This feature allows attendees to easily browse and discover upcoming events. Providing an RSVP list helps users keep track of their commitments while helping organizers understand attendance beforehand.
+- **Persistent Storage**: All event data is stored in the events table, and all RSVPs are stored in the rsvps table within PostgreSQL. Persistent volumes ensure that both event information and RSVP relationships remain intact across pod restarts and redeployments.
+- **Containerization and Orchestration**: The Event Dashboard and RSVP routes are served by the node-app Deployment and exposed through the LoadBalancer Service. Data from the events and rsvps tables is retrieved through the PostgreSQL Deployment via its internal ClusterIP Service, ensuring reliable access even during pod restarts.
+- **Achieving Project Objectives**: This feature allows attendees to easily browse and discover upcoming events. Providing an RSVP list helps users keep track of their commitments while helping organizers understand attendance beforehand.
 
 
-### User Dashboard and Inbox
+### 4. User Dashboard and Inbox
 
 #### Overview
 The “Inbox” tab shows announcements from events the user has RSVP’d to, allowing for organizers to post updates that appear immediately to attendees.The user dashboard at the top of the application provides a quick overview of a user’s upcoming events, past attendance, and total notifications received that is updated in real-time.
 
 #### Course Project Requirements Fulfilled
 
-**Real-Time Functionality**
-Socket.io updates the user dashboard and inbox instantly. When organizers post announcements, notification entries are created and pushed to attendees in real time, allowing notification counts and inbox messages to refresh without a page reload. 
-
-**Persistent Storage**
-Notifications are stored in the notifications table and linked to their associated user and event. Persistent volumes ensure this data, including inbox messages and notification counts, remains intact across pod restarts and redeployments.
+- **Real-Time Functionality**: Socket.io updates the user dashboard and inbox instantly. When organizers post announcements, notification entries are created and pushed to attendees in real time, allowing notification counts and inbox messages to refresh without a page reload. 
+- **Persistent Storage**: Notifications are stored in the notifications table and linked to their associated user and event. Persistent volumes ensure this data, including inbox messages and notification counts, remains intact across pod restarts and redeployments.
 
 #### Achieving Project Objectives
 This feature directly supports EventScape’s main objective: improving communication between organizers and attendees. Users receive timely, accurate updates related to the events they care about, reducing miscommunication and improving coordination.
+
 
 
 ## User Guide
