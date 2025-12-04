@@ -1,9 +1,9 @@
 # EventScape - Final Report
 ### Team Information
-Nilofer Hyder — 1007273807 — nilofer.hyder@mail.utoronto.ca
-Jesse Na — 1005890788 — jesse.na@mail.utoronto.ca
-Dasha Moskvitina — 1006055830 — daria.moskvitina@mail.utoronto.ca
-Jashan Boparai — 999870858 - jashan.boparai@mail.utoronto.ca
+Nilofer Hyder — 1007273807 — nilofer.hyder@mail.utoronto.ca<br>
+Jesse Na — 1005890788 — jesse.na@mail.utoronto.ca<br>
+Dasha Moskvitina — 1006055830 — daria.moskvitina@mail.utoronto.ca<br>
+Jashan Boparai — 999870858 - jashan.boparai@mail.utoronto.ca<br>
 
 ## Motivation
 In an increasingly remote world, people seek spaces to meet and socialize with others. Events, be it a small house party or a large convention, are important examples of today's social rhythm. Events bring people together; they are a time and space for us to escape from work, to learn something new, to connect with others, or to just have fun. A successful event must facilitate these interactions as smoothly as possible. While attendees enjoy the experience, organizers deal with stress, miscommunication, and coordination issues behind the scenes. Our team was motivated by this gap, and we believe that improving how organizers and attendees communicate before, during, and after events can reduce that burden.
