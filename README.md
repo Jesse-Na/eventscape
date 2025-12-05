@@ -1,9 +1,9 @@
 # EventScape - Final Report
 ### Team Information
-Nilofer Hyder — 1007273807 — nilofer.hyder@mail.utoronto.ca<br>
-Jesse Na — 1005890788 — jesse.na@mail.utoronto.ca<br>
-Dasha Moskvitina — 1006055830 — daria.moskvitina@mail.utoronto.ca<br>
-Jashan Boparai — 999870858 - jashan.boparai@mail.utoronto.ca<br>
+Nilofer Hyder — 1007273807 — nilofer.hyder@mail.utoronto.ca    
+Jesse Na — 1005890788 — jesse.na@mail.utoronto.ca    
+Dasha Moskvitina — 1006055830 — daria.moskvitina@mail.utoronto.ca    
+Jashan Boparai — 999870858 - jashan.boparai@mail.utoronto.ca
 
 ## Motivation
 In an increasingly remote world, people seek spaces to meet and socialize with others. Events, be it a small house party or a large convention, are important examples of today's social rhythm. Events bring people together; they are a time and space for us to escape from work, to learn something new, to connect with others, or to just have fun. A successful event must facilitate these interactions as smoothly as possible. While attendees enjoy the experience, organizers deal with stress, miscommunication, and coordination issues behind the scenes. Our team was motivated by this gap, and we believe that improving how organizers and attendees communicate before, during, and after events can reduce that burden.
@@ -93,7 +93,7 @@ This feature directly supports EventScape’s main objective: improving communic
 ## User Guide
 ![Pic1](supporting_images/Pic1.png)
 
-When you open EventScape, start by clicking Register, enter your information, and select Sign Up to create your account.
+When you open EventScape, start by clicking Register, enter your information, and select Sign Up to create your account. For the purpose of our demo, please select the "All" option for notification preference. If it's not set to "All", then you will not see the real-time user Inbox updates.
 ![Pic2](supporting_images/Pic2.png)
 
 After registering, check the email address you provided to view our welcome message. If you do not see it in your inbox, be sure to check your spam folder.
@@ -123,7 +123,7 @@ The Profile Settings tab shows your display name and email, and lets you change 
 Selecting Log Out from the sidebar returns you to the home page, where you can log in again or register a new account.
 
 ## Video Demo
-
+https://www.youtube.com/watch?v=DozTHLik5kc
 
 ## Development Guide
 We've set up two ways to develop locally:
@@ -167,7 +167,7 @@ This guide assumes you are already inside the eventscape project folder.
     -   `minikube delete` only if you want to erase the persistent database (i.e. you made a change to the database schema)
 
 ## Deployment Information
-Our Kubernetes cluster is deployed on DigitalOcean at http://209.38.12.238/
+Our Kubernetes cluster is deployed on DigitalOcean at http://209.38.12.178/
 
 ### How to deploy to DigitalOcean
 
@@ -203,4 +203,64 @@ Our Kubernetes cluster is deployed on DigitalOcean at http://209.38.12.238/
     -   Update the file with the correct ip and user credentials
 
 ## Individual Contributions
+The following is a summary of each member's contribution to the project:
+
+### Jesse Na
+
+- Set up the initial backend and infrastructure for the project, including the Node.js server, PostgreSQL database pods with persistent storage, and the basic status endpoint.
+- Implemented Docker and Kubernetes support, including deployment manifests, readiness probes, load balancer services, and later switching to kustomize for cleaner configuration management.
+- Handled deployment of Kubernetes cluster to DigitalOcean
+- Created and maintained the `docker-compose` configuration and deployment scripts, as well as documentation for developers on how to build, run, and deploy the application.
+- Implemented and refined login and registration backend endpoints, session handling, and restrictions to ensure that only authenticated users can access protected routes.
+- Added configuration and secret management improvements (e.g., `.env` usage, session secret injection) and set up load-testing, resource requests, and cluster monitoring/metrics to support basic observability and performance testing.
+- Led multiple merges of feature branches, resolving conflicts and keeping the main branch in a working, deployable state.
+
+### Jashan
+
+- Designed and implemented the “Your Events” feature, including the corresponding frontend views and initial backend wiring so that users can see events they are hosting or have interacted with.
+- Implemented the first version of the RSVP flow, including clicking into an event for more detailed information and updating RSVP status (e.g., Going/Interested/Waitlisted), and iteratively refined the UI to make the interaction cleaner.
+- Developed and fixed functionality for invitations and announcements, including updates that ensured invitations were correctly surfaced in the inbox and that announcement behaviour matched the intended design.
+- Contributed to the database layer by adding and updating SQL table definitions to support events, RSVPs, invitations, and announcements.
+- Performed UI polish and small fixes across the dashboard and related views during the later stages of the project to improve consistency and usability.
+
+### Nilofer
+
+- Implemented and extended backend endpoints for phase 2 of the project, covering remaining routes needed for event management, invitations, and dashboard data.
+- Designed and coded the logic behind the user stats bar on the dashboard (for example, counts of hosted and RSVP’d events), including ensuring that the stats correctly reflected user state.
+- Added real-time updates for the stats bar so that counts change immediately when a user RSVPs, cancels, or updates their status, and fixed edge cases such as double-counting hosts who are also marked as going.
+- Adjusted the database schema where needed (e.g., updating the invitations table constraints) to better match the way the application uses the data.
+- Implemented and wired up logout button functionality and helped resolve merge conflicts across several feature branches.
+
+### Dasha
+
+- Led the frontend implementation of the application, including the overall layout, styling, and server-side rendered views for the home page, login, registration, dashboard, and other core pages.
+- Built the initial dashboard structure (“clean dashboard base”) and iteratively refined it, including work-in-progress dashboards, fixing visual issues (such as borders and alignment), and ensuring a consistent look and feel.
+- Implemented the registration and post-registration pages, and contributed to the login flow, including client-side structure that integrates with Jesse’s backend authentication logic.
+- Developed profile settings and the first pass at the event dashboard views, and added UI elements such as the inbox / RSVP’d buttons and logout button in coordination with backend routes.
+- Performed numerous frontend fixes and cleanup tasks (removing unnecessary files, hotfixes for local runs, image/feature formatting) and later updated documentation and readme sections related to the UI and feature overview.
+
+### Shared Responsibilities
+
+All team members participated in design discussions, debugging sessions, and code reviews. Everyone contributed to testing the end-to-end user flows (registration, login, event creation, RSVP, dashboard/inbox updates), identifying bugs, and refining both usability and reliability as the project evolved.
+
 ## Lessons Learned and Concluding Remarks
+
+Working on EventScape as a full end-to-end application forced us to connect many of the ideas from the course into one coherent system. Instead of focusing on an isolated container or a small demo service, we had to think through the entire lifecycle of an event: organizers creating events, users discovering them, RSVPing, receiving updates, and seeing all of this reflected consistently in their dashboards.
+
+One major lesson was the importance of getting the data model and flows right early. Defining how events, RSVPs, announcements, and notifications relate to each other (and then keeping that model consistent in both the database schema and the application code) was more challenging than expected. Small changes such as adding waitlist information or tracking whether a user has “seen” an announcement had ripple effects across queries, API routes, and UI templates. This experience reinforced that good schema design and clear domain concepts are critical for a maintainable application.
+
+We also gained a much deeper appreciation of what it means to build a real-time, stateful user experience. Implementing Socket.io for live updates to the inbox and RSVP status seemed straightforward at first, but required careful thinking about event names, room membership, and when to update the database versus when to simply update the UI. Ensuring that the on-screen state (e.g., “Going”, “Interested”, or “Waitlisted”) always matched the persisted state in PostgreSQL was a recurring theme, and it highlighted the importance of idempotent operations and clear separation between server-side logic and client-side behaviour.
+
+Another key lesson was around robustness and user experience. We had to handle edge cases such as capacity limits, duplicate RSVPs, users changing their status, and organizers modifying events after people had already signed up. This led us to implement stricter validation, more helpful error messages, and clearer feedback in the UI (for example, confirming status changes and surfacing when an event is full). It became clear that “it works in the happy path” is not enough for a real application handling the messy cases is what makes the system feel reliable to users.
+
+From an engineering process perspective, we learned the value of vertical slices of functionality. Features like “RSVP to an event and see it reflected in the inbox” cut across routing, controllers, database queries, Socket.io events, and EJS templates. Owning these features end-to-end turned out to be more effective than dividing work strictly as “frontend vs backend”, because most meaningful features span both. It also made testing easier: we could verify a complete user story rather than individual, disconnected pieces.
+
+Finally, although our earlier course assignments (DigitalOcean IaaS, Docker Compose, Fly.io, and Kubernetes with minikube) provided the building blocks for deployment, the project taught us how to design the application so that it is cloud-ready by default. By keeping configuration in environment variables, packaging services in Docker, and keeping persistent state in PostgreSQL rather than in memory, the same codebase can be run locally for development and then deployed to different platforms with minimal changes. 
+
+### Concluding Remarks
+
+EventScape achieves the main goal we set out in the proposal: to build a cloud-ready event management platform where users can discover events, RSVP, and receive timely updates through an integrated dashboard and inbox, rather than relying on scattered emails and ad-hoc communication. The final system includes authentication, event creation and management, RSVP flows with capacity handling, real-time notifications via Socket.io, and email integration to keep users informed even when they are not actively on the site.
+
+While there are many features that could be added such as richer search and filtering, recurring events, finer grained notification settings, and analytics for organizers the current implementation already represents a complete, usable application that connects the core concepts of the course (containers, configuration, and web services) to a realistic user-facing product.
+
+Overall, this project gave us practical experience in taking an idea from proposal to a working web application: translating requirements into a data model, implementing and connecting multiple components (API, database, real-time layer, UI), and making design decisions with deployment in mind. These lessons extend beyond this specific codebase and provide a foundation we can apply to future cloud applications and professional projects.
