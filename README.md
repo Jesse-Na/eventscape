@@ -1,8 +1,8 @@
 # EventScape - Final Report
 ### Team Information
-Nilofer Hyder — 1007273807 — nilofer.hyder@mail.utoronto.ca
-Jesse Na — 1005890788 — jesse.na@mail.utoronto.ca
-Dasha Moskvitina — 1006055830 — daria.moskvitina@mail.utoronto.ca
+Nilofer Hyder — 1007273807 — nilofer.hyder@mail.utoronto.ca    
+Jesse Na — 1005890788 — jesse.na@mail.utoronto.ca    
+Dasha Moskvitina — 1006055830 — daria.moskvitina@mail.utoronto.ca    
 Jashan Boparai — 999870858 - jashan.boparai@mail.utoronto.ca
 
 ## Motivation
