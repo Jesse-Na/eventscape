@@ -89,24 +89,36 @@ The “Inbox” tab shows announcements from events the user has RSVP’d to, al
 This feature directly supports EventScape’s main objective: improving communication between organizers and attendees. Users receive timely, accurate updates related to the events they care about, reducing miscommunication and improving coordination.
 
 
+
 ## User Guide
+![Pic1](supporting_images/Pic1.png)
+
 When you open EventScape, start by clicking Register, enter your information, and select Sign Up to create your account. For the purpose of our demo, please select the "All" option for notification preference. If it's not set to "All", then you will not see the real-time user Inbox updates.
+![Pic2](supporting_images/Pic2.png)
 
 After registering, check the email address you provided to view our welcome message. If you do not see it in your inbox, be sure to check your spam folder.
+![Pic4](supporting_images/Pic4.png)
 
 Return to EventScape and log in using the credentials you just created. This will bring you to your personal dashboard.
+![Pic3](supporting_images/Pic3.png)
 
 Upon logging in, you will see the user dashboard at the top of the page along with a list of public upcoming events you can browse and RSVP to.
+![Pic5](supporting_images/Pic5.png)
 
 Clicking on an event opens its full details, including title, location, schedule, and capacity. From here, you can RSVP or cancel your RSVP at any time. Your dashboard updates instantly after responding.
+![Pic6](supporting_images/Pic6.png)
 
 The RSVP tab on the left-hand sidebar shows all events you have signed up for in one place
+![Pic7](supporting_images/Pic7.png)
 
 The Your Events tab allows you to create and manage events you are hosting. You can enter event details, adjust visibility, and manage capacity
+![Pic8](supporting_images/Pic8.png)
 
 The Inbox tab displays all notifications you have received. Announcements come from organizers of events you have RSVP’d to, while invitations appear when another user invites you to their event. 
+![Pic9](supporting_images/Pic9.png)
 
 The Profile Settings tab shows your display name and email, and lets you change your notification preferences.
+![Pic10](supporting_images/pic10.png)
 
 Selecting Log Out from the sidebar returns you to the home page, where you can log in again or register a new account.
 
@@ -191,8 +203,6 @@ Our Kubernetes cluster is deployed on DigitalOcean at http://209.38.12.178/
     -   Update the file with the correct ip and user credentials
 
 ## Individual Contributions
-
-
 The following is a summary of each member's contribution to the project:
 
 ### Jesse Na
